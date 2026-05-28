@@ -1,0 +1,80 @@
+{% extends 'layout.html' %}
+
+{% block title %}Notes Library - StudyNova{% endblock %}
+
+{% block content %}
+<section class="page-header py-5 bg-primary text-white text-center" style="background: linear-gradient(135deg, var(--dark-blue) 0%, var(--primary-color) 100%);">
+    <div class="container">
+        <h1 data-aos="fade-down">Notes Library</h1>
+        <p class="lead" data-aos="fade-up">Explore thousands of quality study materials shared by students.</p>
+    </div>
+</section>
+
+<section class="library-section py-5">
+    <div class="container">
+        <!-- Search and Filter Bar -->
+        <div class="search-filter-bar mb-5" data-aos="fade-up">
+            <div class="glass-card p-4">
+                <form action="/notes" method="GET" class="row g-3">
+                    <div class="col-md-5">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" name="search" class="form-control border-start-0" placeholder="Search by title or subject..." value="{{ request.args.get('search', '') }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <select name="category" class="form-select">
+                            {% for cat in categories %}
+                            <option value="{{ cat }}" {% if current_category == cat %}selected{% endif %}>{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Notes Grid -->
+        <div class="row g-4">
+            {% if notes %}
+                {% for note in notes %}
+                <div class="col-lg-4 col-md-6" data-aos="zoom-in" data-aos-delay="{{ loop.index % 3 * 100 }}">
+                    <div class="glass-card note-card">
+                        <div class="note-icon">
+                            <i class="{{ note.icon }}"></i>
+                        </div>
+                        <div class="note-badge">{{ note.category }}</div>
+                        <h3>{{ note.title }}</h3>
+                        <p class="text-muted mb-3"><i class="fas fa-book-open me-2"></i>{{ note.subject }}</p>
+                        
+                        <div class="note-meta border-top pt-3 d-flex justify-content-between align-items-center">
+                            <div class="date-info">
+                                <small class="text-muted d-block">Uploaded on</small>
+                                <strong>{{ note.date }}</strong>
+                            </div>
+                            <div class="actions d-flex gap-2">
+                                <a href="/preview/{{ note.filename }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-eye me-2"></i>Preview
+                                </a>
+                                <a href="/download/{{ note.filename }}" class="btn btn-primary">
+                                    <i class="fas fa-download me-2"></i>Download
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12 text-center py-5">
+                    <img src="https://cdni.iconscout.com/illustration/premium/thumb/no-data-found-8867280-7265556.png" alt="No results" class="img-fluid mb-4" style="max-width: 300px;">
+                    <h3>No notes found matching your criteria.</h3>
+                    <p>Try searching with different keywords or browse other categories.</p>
+                    <a href="/notes" class="btn btn-outline-primary mt-3">Reset Filters</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

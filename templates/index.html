@@ -1,0 +1,130 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6" data-aos="fade-right">
+                <h1 class="hero-title">
+                    Learn Smarter, Grow Faster 🚀
+                </h1>
+                <p class="hero-subtitle mb-4">Access notes, PPTs, coding resources, and study materials in one smart platform.</p>
+                <div class="hero-buttons">
+                    <a href="/notes" class="btn btn-primary btn-lg me-3"><i class="fas fa-book-open me-2"></i>Explore Library</a>
+                    <a href="/upload" class="btn btn-outline-light btn-lg"><i class="fas fa-cloud-upload-alt me-2"></i>Upload Notes</a>
+                </div>
+            </div>
+            <div class="col-lg-6 text-center" data-aos="fade-left">
+                <div class="hero-image-glass">
+                    <img src="{{ url_for('static', filename='images/student-hero.png') }}" alt="College students at an engineering college" class="hero-main-image">
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="stats-section py-5">
+    <div class="container">
+        <div class="row g-4 text-center">
+            <div class="col-md-4" data-aos="zoom-in" data-aos-delay="100">
+                <div class="stat-card">
+                    <i class="fas fa-file-alt mb-3"></i>
+                    <h2 class="counter">{{ stats.total_notes }}</h2>
+                    <p>Total Notes</p>
+                </div>
+            </div>
+            <div class="col-md-4" data-aos="zoom-in" data-aos-delay="200">
+                <div class="stat-card">
+                    <i class="fas fa-users mb-3"></i>
+                    <h2 class="counter">{{ stats.total_users }}</h2>
+                    <p>Happy Students</p>
+                </div>
+            </div>
+            <div class="col-md-4" data-aos="zoom-in" data-aos-delay="300">
+                <div class="stat-card">
+                    <i class="fas fa-download mb-3"></i>
+                    <h2 class="counter">{{ stats.downloads }}</h2>
+                    <p>Downloads</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Notes -->
+<section class="featured-notes py-5 bg-light">
+    <div class="container">
+        <div class="section-header text-center mb-5" data-aos="fade-up">
+            <h2 class="section-title">Latest Study Materials</h2>
+            <p>Freshly uploaded notes from our community</p>
+        </div>
+        <div class="row g-4">
+            {% for note in notes %}
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="{{ loop.index * 100 }}">
+                <div class="glass-card note-card">
+                    <div class="note-icon">
+                        <i class="{{ note.icon }}"></i>
+                    </div>
+                    <div class="note-badge">{{ note.category }}</div>
+                    <h3>{{ note.title }}</h3>
+                    <p><i class="fas fa-book-open me-2"></i>{{ note.subject }}</p>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <span class="date"><i class="far fa-calendar-alt me-1"></i> {{ note.date }}</span>
+                        <div class="d-flex gap-2">
+                            <a href="/preview/{{ note.filename }}" class="btn btn-sm btn-outline-primary">Preview</a>
+                            <a href="/download/{{ note.filename }}" class="btn btn-sm btn-primary">Download</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="text-center mt-5" data-aos="fade-up">
+            <a href="/notes" class="btn btn-outline-primary">View All Library</a>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6" data-aos="fade-right">
+                <img src="https://cdni.iconscout.com/illustration/premium/thumb/online-education-4122137-3430485.png" alt="Features" class="img-fluid">
+            </div>
+            <div class="col-lg-6" data-aos="fade-left">
+                <h2 class="section-title mb-4">Why Choose StudyNova?</h2>
+                <div class="feature-item d-flex mb-4">
+                    <div class="feature-icon me-3">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div>
+                        <h4>Free Access</h4>
+                        <p>All notes and materials are available for free for all students.</p>
+                    </div>
+                </div>
+                <div class="feature-item d-flex mb-4">
+                    <div class="feature-icon me-3">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div>
+                        <h4>Quality Content</h4>
+                        <p>Materials are uploaded by students and verified for quality.</p>
+                    </div>
+                </div>
+                <div class="feature-item d-flex mb-4">
+                    <div class="feature-icon me-3">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div>
+                        <h4>Fast Downloads</h4>
+                        <p>High-speed servers ensure your materials are ready when you are.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

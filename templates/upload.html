@@ -1,0 +1,88 @@
+{% extends 'layout.html' %}
+
+{% block title %}Upload Notes - StudyNova{% endblock %}
+
+{% block content %}
+<section class="page-header py-5 bg-primary text-white text-center" style="background: linear-gradient(135deg, var(--dark-blue) 0%, var(--primary-color) 100%);">
+    <div class="container">
+        <h1 data-aos="fade-down">Upload Your Knowledge</h1>
+        <p class="lead" data-aos="fade-up">Help your fellow students by sharing your study materials.</p>
+    </div>
+</section>
+
+<section class="upload-section py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8" data-aos="zoom-in">
+                <div class="glass-card p-5">
+                    <div class="text-center mb-5">
+                        <i class="fas fa-cloud-upload-alt fa-4x text-primary mb-3"></i>
+                        <h2>File Upload</h2>
+                        <p class="text-muted">Supported formats: PDF, PPT, DOCX, ZIP, JPG, PNG (Max 16MB)</p>
+                    </div>
+
+                    <form action="/upload" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="form-label">Note Title</label>
+                                <input type="text" name="title" class="form-control" placeholder="e.g. Advanced Data Structures" required>
+                                <div class="invalid-feedback">Please provide a title.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Subject</label>
+                                <input type="text" name="subject" class="form-control" placeholder="e.g. Computer Science" required>
+                                <div class="invalid-feedback">Please provide a subject.</div>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Category</label>
+                                <select name="category" class="form-select" required>
+                                    <option value="" selected disabled>Select a Category</option>
+                                    {% for cat in categories %}
+                                    <option value="{{ cat }}">{{ cat }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">Please select a category.</div>
+                            </div>
+                            <div class="col-md-12">
+                                <div class="upload-drop-zone p-5 text-center border-dashed rounded-3 bg-light">
+                                    <input type="file" name="file" class="form-control d-none" id="fileInput" required>
+                                    <label for="fileInput" class="cursor-pointer">
+                                        <i class="fas fa-file-upload fa-3x mb-3 text-muted"></i>
+                                        <h5 id="fileName">Click to select or drag and drop your file</h5>
+                                    </label>
+                                    <div class="invalid-feedback">Please select a file to upload.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-12 text-center mt-5">
+                                <button type="submit" class="btn btn-primary btn-lg px-5">
+                                    <i class="fas fa-paper-plane me-2"></i>Upload Note
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+        const fileName = e.target.files[0]?.name || "Click to select or drag and drop your file";
+        document.getElementById('fileName').textContent = fileName;
+    });
+</script>
+
+<style>
+    .border-dashed {
+        border: 2px dashed #ccc;
+    }
+    .cursor-pointer {
+        cursor: pointer;
+    }
+    .upload-drop-zone:hover {
+        background-color: #f0f0f0 !important;
+        border-color: var(--primary-color);
+    }
+</style>
+{% endblock %}

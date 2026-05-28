@@ -1,0 +1,29 @@
+{% extends 'layout.html' %}
+
+{% block title %}Preview {{ note.title }} - StudyNova{% endblock %}
+
+{% block content %}
+<section class="page-header py-5 bg-primary text-white text-center" style="background: linear-gradient(135deg, var(--dark-blue) 0%, var(--primary-color) 100%);">
+    <div class="container">
+        <h1 data-aos="fade-down">{{ note.title }}</h1>
+        <p class="lead" data-aos="fade-up">{{ note.subject }} study material preview</p>
+    </div>
+</section>
+
+<section class="preview-section py-5">
+    <div class="container">
+        <div class="glass-card p-4 p-md-5">
+            <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+                <div>
+                    <span class="note-badge-static">{{ note.category }}</span>
+                    <p class="text-muted mt-3 mb-0"><i class="far fa-calendar-alt me-2"></i>{{ note.date }}</p>
+                </div>
+                <a href="/download/{{ note.filename }}" class="btn btn-primary align-self-md-start">
+                    <i class="fas fa-download me-2"></i>Download
+                </a>
+            </div>
+            <pre class="preview-box">{{ content }}</pre>
+        </div>
+    </div>
+</section>
+{% endblock %}

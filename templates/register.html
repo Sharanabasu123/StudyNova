@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - StudyNova</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="auth-page">
+    <img src="{{ url_for('static', filename='images/Studynovalogo.jpeg') }}" class="bg-logo-watermark" alt="">
+
+    <div class="auth-container" data-aos="zoom-in">
+        <div class="auth-split flex-row-reverse">
+            <div class="auth-logo-side">
+                <img src="{{ url_for('static', filename='images/Studynovalogo.jpeg') }}" alt="StudyNova Logo">
+                <h1>Join StudyNova</h1>
+                <p>Start your journey to smarter learning today.</p>
+                <div class="mt-4">
+                    <a href="/login" class="btn btn-outline-light rounded-pill px-4">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Login
+                    </a>
+                </div>
+            </div>
+
+            <div class="auth-form-side">
+                <h2>Create Account</h2>
+                <p class="text-muted mb-4">Join our community of students and educators.</p>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                    <div class="auth-alerts">
+                        {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                {% endwith %}
+
+                <form action="{{ url_for('register') }}" method="POST" class="needs-validation" novalidate>
+                    <div class="mb-3">
+                        <label class="form-label">Full Name</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-user text-muted"></i></span>
+                            <input type="text" name="username" value="{{ request.form.get('username', '') }}" class="form-control bg-light border-start-0" placeholder="Your full name" required autofocus>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email Address</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-envelope text-muted"></i></span>
+                            <input type="email" name="email" value="{{ request.form.get('email', '') }}" class="form-control bg-light border-start-0" placeholder="name@example.com" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-lock text-muted"></i></span>
+                            <input type="password" name="password" class="form-control bg-light border-start-0" placeholder="Create password" required minlength="6">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">Confirm Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-shield-alt text-muted"></i></span>
+                            <input type="password" name="confirm_password" class="form-control bg-light border-start-0" placeholder="Confirm password" required minlength="6">
+                        </div>
+                    </div>
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" id="terms" name="terms" required>
+                        <label class="form-check-label small" for="terms">
+                            I agree to the
+                            <a href="#" class="text-primary text-decoration-none" data-bs-toggle="modal" data-bs-target="#termsModal">Terms & Conditions</a>
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Account</button>
+                </form>
+
+                <div class="auth-footer">
+                    <p>Already have an account? <a href="/login" class="text-primary text-decoration-none fw-bold">Login here</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content terms-modal">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="termsModalLabel">StudyNova Terms & Conditions</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>By creating a StudyNova account, you agree to use this platform responsibly for educational purposes only.</p>
+                    <ul class="terms-list">
+                        <li>Upload only notes, PPTs, code resources, and study materials that you own or have permission to share.</li>
+                        <li>Do not upload harmful, abusive, misleading, copyrighted, or private content without permission.</li>
+                        <li>Downloaded and previewed materials are for personal study use and should not be resold or misused.</li>
+                        <li>Keep your login details private. You are responsible for activity from your account.</li>
+                        <li>StudyNova may remove content that violates platform rules or affects student safety.</li>
+                        <li>The platform is provided for student learning support, and materials may need independent verification before exams or submissions.</li>
+                    </ul>
+                    <p class="mb-0">If you do not agree with these terms, please do not create an account.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">I Understand</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

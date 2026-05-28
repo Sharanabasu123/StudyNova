@@ -1,0 +1,62 @@
+{% extends 'layout.html' %}
+
+{% block title %}About StudyNova{% endblock %}
+
+{% block content %}
+<section class="page-header py-5 bg-primary text-white text-center" style="background: linear-gradient(135deg, var(--dark-blue) 0%, var(--primary-color) 100%);">
+    <div class="container">
+        <h1 data-aos="fade-down">About StudyNova</h1>
+        <p class="lead" data-aos="fade-up">Our mission is to make education accessible for everyone.</p>
+    </div>
+</section>
+
+<section class="about-content py-5">
+    <div class="container">
+        <div class="row align-items-center mb-5">
+            <div class="col-lg-6" data-aos="fade-right">
+                <h2 class="section-title">Our Vision</h2>
+                <p>StudyNova was born from a simple idea: students helping students. We believe that quality education should be accessible to everyone, regardless of their background or financial status. Our platform provides a centralized hub for students to share their hard-earned knowledge through notes, presentations, and study materials.</p>
+                <div class="row mt-4">
+                    <div class="col-6">
+                        <div class="glass-card text-center p-3">
+                            <i class="fas fa-rocket fa-2x text-primary mb-2"></i>
+                            <h5>Mission</h5>
+                            <p class="small">To empower students with free resources.</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="glass-card text-center p-3">
+                            <i class="fas fa-eye fa-2x text-primary mb-2"></i>
+                            <h5>Vision</h5>
+                            <p class="small">To be the global hub for student notes.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6" data-aos="fade-left">
+                <img src="https://cdni.iconscout.com/illustration/premium/thumb/about-us-1805547-1537820.png" alt="About StudyNova" class="img-fluid">
+            </div>
+        </div>
+
+        <div class="developer-section py-5 bg-light rounded-4 p-5" data-aos="fade-up">
+            <div class="row align-items-center">
+                <div class="col-lg-4 text-center mb-4 mb-lg-0">
+                    <div class="dev-img-wrapper">
+                        <img src="{{ url_for('static', filename='images/Blaser photo.jpeg') }}" alt="Sharanabasu Police Patil" class="rounded-circle shadow-lg border border-5 border-white img-fluid" style="width: 250px; height: 250px; object-fit: cover;">
+                    </div>
+                </div>
+                <div class="col-lg-8">
+                    <h2 class="mb-3">Meet the Developer</h2>
+                    <h4>Sharanabasu Police Patil</h4>
+                    <p class="text-primary font-weight-bold">B.E CSE Student - RLJIT</p>
+                    <p>I am a passionate Computer Science student dedicated to building tools that solve real-world problems. StudyNova is my contribution to the student community, aiming to bridge the gap in access to quality study materials.</p>
+                    <div class="dev-social mt-4">
+                        <a href="https://github.com/Sharanabasu123" class="btn btn-dark me-2"><i class="fab fa-github me-2"></i>GitHub</a>
+                        <a href="https://www.linkedin.com/in/sharanabasu-police-patil" class="btn btn-primary me-2"><i class="fab fa-linkedin me-2"></i>LinkedIn</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
