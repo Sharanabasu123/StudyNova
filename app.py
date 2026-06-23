@@ -94,7 +94,50 @@ def create_user(username, email, password):
 
 
 def init_db():
-    return
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Create users table with role column
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            role TEXT DEFAULT 'user'
+        )
+    ''')
+    
+    # Create admin user if not exists
+    cursor.execute('SELECT * FROM users WHERE email = ?', ('sharanabasupolicepatil2005@gmail.com',))
+    admin_user = cursor.fetchone()
+    
+    if not admin_user:
+        # Create admin user with hashed password
+        hashed_admin_password = generate_password_hash('sharan@2005')
+        cursor.execute(
+            'INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)',
+            ('Sharanabasu Policepatil', 'sharanabasupolicepatil2005@gmail.com', hashed_admin_password, 'admin')
+        )
+        print("Admin user created: sharanabasupolicepatil2005@gmail.com / sharan@2005")
+    
+    # Create demo user if not exists
+    cursor.execute('SELECT * FROM users WHERE email = ?', ('demo@studynova.com',))
+    demo_user = cursor.fetchone()
+    
+    if not demo_user:
+        # Create demo user with hashed password
+        hashed_demo_password = generate_password_hash('studynova123')
+        cursor.execute(
+            'INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)',
+            ('Demo Student', 'demo@studynova.com', hashed_demo_password, 'user')
+        )
+        print("Demo user created: demo@studynova.com / studynova123")
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+    print("Database initialized successfully!")
 
 notes = [
     {
@@ -143,6 +186,23 @@ def login_required(view):
         return view(*args, **kwargs)
     return wrapped_view
 
+
+def admin_required(view):
+    @wraps(view)
+    def wrapped_view(*args, **kwargs):
+        if not session.get('user_email'):
+            flash('Please login to continue.', 'warning')
+            return redirect(url_for('login', next=request.path))
+        
+        # Get user role from database
+        user = get_user_by_email(session['user_email'])
+        if not user or user.get('role') != 'admin':
+            flash('Access denied. Admin privileges required.', 'danger')
+            return redirect(url_for('home'))
+        
+        return view(*args, **kwargs)
+    return wrapped_view
+
 def find_note_by_filename(filename):
     return next((note for note in notes if note['filename'] == filename), None)
 
@@ -172,7 +232,42 @@ def home():
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    # Redirect to admin dashboard if user is admin
+    if session.get('user_role') == 'admin':
+        return redirect(url_for('admin_dashboard'))
     return redirect(url_for('home'))
+
+
+@app.route('/admin')
+@admin_required
+def admin_dashboard():
+    # Get statistics for admin dashboard
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Count total users
+    cursor.execute('SELECT COUNT(*) as total_users FROM users')
+    total_users = cursor.fetchone()[0]
+    
+    # Count admin users
+    cursor.execute('SELECT COUNT(*) as admin_users FROM users WHERE role = ?', ('admin',))
+    admin_users = cursor.fetchone()[0]
+    
+    # Count regular users
+    regular_users = total_users - admin_users
+    
+    cursor.close()
+    conn.close()
+    
+    stats = {
+        'total_users': total_users,
+        'admin_users': admin_users,
+        'regular_users': regular_users,
+        'total_notes': len(notes),
+        'downloads': 1200
+    }
+    
+    return render_template('index.html', stats=stats, is_admin=True)
 
 @app.route('/notes')
 @login_required
@@ -346,4 +441,6 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
+    # Initialize database on startup
+    init_db()
     app.run(debug=True)
