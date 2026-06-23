@@ -79,41 +79,6 @@ def execute_query(sql, params=None, fetchone=False, fetchall=False, commit=False
         conn.close()
 
 
-# Initialize the database table for users and add the demo account.
-def init_db():
-    if mysql_enabled():
-        create_table_sql = '''CREATE TABLE IF NOT EXISTS users (
-               id INT AUTO_INCREMENT PRIMARY KEY,
-               username VARCHAR(255) NOT NULL,
-               email VARCHAR(255) NOT NULL UNIQUE,
-               password VARCHAR(255) NOT NULL
-           )'''
-    else:
-        create_table_sql = '''CREATE TABLE IF NOT EXISTS users (
-               id INTEGER PRIMARY KEY AUTOINCREMENT,
-               username TEXT NOT NULL,
-               email TEXT NOT NULL UNIQUE,
-               password TEXT NOT NULL
-           )'''
-
-    execute_query(create_table_sql, commit=True)
-
-    demo_email = 'demo@studynova.com'
-    demo_username = 'Sharanabasu'
-    demo_password = 'studynova123'
-
-    demo_query = f'SELECT id FROM users WHERE email = {get_placeholder()}'
-    demo_user = execute_query(demo_query, (demo_email,), fetchone=True)
-
-    hashed_demo_password = generate_password_hash(demo_password)
-    if demo_user is None:
-        insert_sql = f'INSERT INTO users (username, email, password) VALUES ({get_placeholder()}, {get_placeholder()}, {get_placeholder()})'
-        execute_query(insert_sql, (demo_username, demo_email, hashed_demo_password), commit=True)
-    else:
-        update_sql = f'UPDATE users SET username = {get_placeholder()}, password = {get_placeholder()} WHERE email = {get_placeholder()}'
-        execute_query(update_sql, (demo_username, hashed_demo_password, demo_email), commit=True)
-
-
 # Read a user record by email address.
 def get_user_by_email(email):
     placeholder = get_placeholder()
@@ -127,7 +92,9 @@ def create_user(username, email, password):
     query = f'INSERT INTO users (username, email, password) VALUES ({placeholder}, {placeholder}, {placeholder})'
     execute_query(query, (username, email, hashed_password), commit=True)
 
-init_db()
+
+def init_db():
+    return
 
 notes = [
     {
