@@ -2569,10 +2569,12 @@ def admin_api_subjects():
     semester_id = request.args.get('semester_id', type=int)
     branch_id = request.args.get('branch_id', type=int)
     if not scheme_id or not semester_id or not branch_id:
-        print(f"[ADMIN_UPLOAD_SUBJECTS] scheme_id={scheme_id}, semester_id={semester_id}, branch_id={branch_id}, subjects_loaded=0")
+        print(f"[ADMIN_API_SUBJECTS] Missing params - scheme_id={scheme_id}, semester_id={semester_id}, branch_id={branch_id}")
         return jsonify([])
 
     placeholder = get_placeholder()
+    
+    # Get branch-specific subjects
     subjects = execute_query(f'''
         SELECT id, code, name
         FROM subjects
@@ -2581,13 +2583,36 @@ def admin_api_subjects():
           AND branch_id = {placeholder}
         ORDER BY code
     ''', (scheme_id, semester_id, branch_id), fetchall=True)
-
-    print(
-        f"[ADMIN_UPLOAD_SUBJECTS] scheme_id={scheme_id}, "
-        f"semester_id={semester_id}, branch_id={branch_id}, "
-        f"subjects_loaded={len(subjects)}"
-    )
-    return jsonify(subjects)
+    
+    # Also get common subjects for this semester
+    common_subjects = execute_query(f'''
+        SELECT id, code, name
+        FROM subjects
+        WHERE scheme_id = {placeholder}
+          AND semester_id = {placeholder}
+          AND is_common = 1
+        ORDER BY code
+    ''', (scheme_id, semester_id), fetchall=True)
+    
+    all_subjects = subjects + common_subjects
+    all_subjects.sort(key=lambda x: x['code'])
+    
+    print(f"\n[ADMIN_API_SUBJECTS] Query Execution:")
+    print(f"  scheme_id={scheme_id}, semester_id={semester_id}, branch_id={branch_id}")
+    print(f"  Branch-specific subjects: {len(subjects)}")
+    print(f"  Common subjects: {len(common_subjects)}")
+    print(f"  Total subjects: {len(all_subjects)}")
+    
+    if all_subjects:
+        print(f"\n  Subject List:")
+        for subj in all_subjects[:10]:  # Show first 10
+            print(f"    - {subj['code']:15} | {subj['name']}")
+        if len(all_subjects) > 10:
+            print(f"    ... and {len(all_subjects) - 10} more subjects")
+    else:
+        print(f"  ⚠️  No subjects found!")
+    
+    return jsonify(all_subjects)
 
 
 @app.route('/admin/users')
