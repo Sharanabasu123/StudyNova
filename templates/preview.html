@@ -1,28 +1,51 @@
 {% extends 'layout.html' %}
 
-{% block title %}Preview {{ note.title }} - StudyNova{% endblock %}
+{% block title %}Preview - StudyNova{% endblock %}
 
 {% block content %}
 <section class="page-header py-5 bg-primary text-white text-center" style="background: linear-gradient(135deg, var(--dark-blue) 0%, var(--primary-color) 100%);">
     <div class="container">
-        <h1 data-aos="fade-down">{{ note.title }}</h1>
-        <p class="lead" data-aos="fade-up">{{ note.subject }} study material preview</p>
+        <h1 data-aos="fade-down">Preview Note</h1>
+        <p class="lead" data-aos="fade-up">Study material preview</p>
     </div>
 </section>
 
 <section class="preview-section py-5">
     <div class="container">
-        <div class="glass-card p-4 p-md-5">
-            <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
-                <div>
-                    <span class="note-badge-static">{{ note.category }}</span>
-                    <p class="text-muted mt-3 mb-0"><i class="far fa-calendar-alt me-2"></i>{{ note.date }}</p>
+        <div class="glass-card p-4 p-md-5 text-center">
+            {% if filename %}
+            {% if filename.endswith('.pdf') or 'pdf' in filename or filename.startswith('http') %}
+                <div class="ratio ratio-16x9">
+                    {% if filename.startswith('http') %}
+                        <iframe src="{{ filename }}" title="PDF Preview" allowfullscreen></iframe>
+                    {% else %}
+                        <!-- Handle both cases: filename starts with "uploads/" or not -->
+                        {% set file_path = filename if filename.startswith('uploads/') else 'uploads/' + filename %}
+                        <iframe src="/{{ file_path }}" title="PDF Preview" allowfullscreen></iframe>
+                    {% endif %}
                 </div>
-                <a href="/download/{{ note.filename }}" class="btn btn-primary align-self-md-start">
-                    <i class="fas fa-download me-2"></i>Download
+            {% else %}
+                <p class="text-muted">Preview not available for this file type.</p>
+            {% endif %}
+        {% endif %}
+            <div class="mt-4">
+                {% if filename %}
+                    {% if filename.startswith('http') %}
+                        <a href="{{ filename }}" class="btn btn-primary" target="_blank">
+                            <i class="fas fa-download me-2"></i>Download
+                        </a>
+                    {% else %}
+                        <!-- Handle both cases: filename starts with "uploads/" or not -->
+                        {% set file_path = filename if filename.startswith('uploads/') else filename %}
+                        <a href="/download/{{ file_path }}" class="btn btn-primary">
+                            <i class="fas fa-download me-2"></i>Download
+                        </a>
+                    {% endif %}
+                {% endif %}
+                <a href="/notes" class="btn btn-outline-secondary ms-2">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Library
                 </a>
             </div>
-            <pre class="preview-box">{{ content }}</pre>
         </div>
     </div>
 </section>

@@ -1,0 +1,15 @@
+{% extends 'admin_dashboard.html' %}
+
+{% block title %}Replace File - Admin - StudyNova{% endblock %}
+
+{% block admin_content %}
+<h2 class="mb-4">Replace File for "{{ resource.title }}"</h2>
+<form method="POST" enctype="multipart/form-data" class="glass-card p-4">
+    <div class="mb-3">
+        <label for="file" class="form-label">New File</label>
+        <input type="file" class="form-control" id="file" name="file" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Replace File</button>
+    <a href="{{ url_for('admin_competitive_exams') if type == 'exam' else url_for('admin_school_notes') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+</form>
+{% endblock %}

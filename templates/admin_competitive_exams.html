@@ -1,0 +1,65 @@
+{% extends 'admin_dashboard.html' %}
+
+{% block title %}Admin - Competitive Exams - StudyNova{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Competitive Exams Management</h2>
+    <a href="{{ url_for('admin_add_exam_category') }}" class="btn btn-success"><i class="fas fa-plus"></i> Add Category</a>
+</div>
+
+{% for category in categories %}
+<div class="glass-card mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">{{ category.name }}</h4>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('admin_add_exam_topic', category_id=category.id) }}" class="btn btn-sm btn-outline-primary">Add Topic</a>
+                <a href="{{ url_for('admin_edit_exam_category', category_id=category.id) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                <form method="POST" action="{{ url_for('admin_delete_exam_category', category_id=category.id) }}" class="d-inline" onsubmit="return confirm('Delete this category and all topics/resources?');">
+                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+        {% if category.description %}
+        <p class="text-muted mt-2">{{ category.description }}</p>
+        {% endif %}
+        
+        {% set topics = execute_query('SELECT * FROM exam_topics WHERE exam_category_id = ?', (category.id,), fetchall=True) %}
+        {% if topics %}
+            <h5 class="mt-4 mb-3">Topics</h5>
+            <div class="row g-3">
+                {% for topic in topics %}
+                    <div class="col-md-4">
+                        <div class="border rounded p-3">
+                            <h6 class="mb-2">{{ topic.name }}</h6>
+                            {% set res_count = execute_query('SELECT COUNT(*) as cnt FROM exam_resources WHERE exam_topic_id = ?', (topic.id,), fetchone=True) %}
+                            <p class="text-muted small mb-2"><i class="fas fa-file"></i> {{ res_count['cnt'] if res_count else 0 }} resources</p>
+                            <a href="{{ url_for('competitive_exams_topic', topic_id=topic.id) }}" class="btn btn-sm btn-outline-primary me-1">View</a>
+                            <a href="{{ url_for('admin_add_exam_resource', topic_id=topic.id) }}" class="btn btn-sm btn-outline-success me-1"><i class="fas fa-upload"></i></a>
+                            {% set res_list = execute_query('SELECT * FROM exam_resources WHERE exam_topic_id = ?', (topic.id,), fetchall=True) %}
+                            {% if res_list %}
+                                {% for res in res_list %}
+                                <div class="mt-2">
+                                    <small class="d-block text-muted">{{ res.title }}</small>
+                                    <a href="{{ url_for('admin_replace_exam_resource', resource_id=res.id) }}" class="btn btn-sm btn-outline-warning">Replace</a>
+                                    <form method="POST" action="{{ url_for('admin_delete_exam_resource', resource_id=res.id) }}" class="d-inline" onsubmit="return confirm('Delete this resource?');">
+                                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                    </form>
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="fas fa-trophy fa-4x text-muted mb-3"></i>
+    <h4>No categories yet</h4>
+</div>
+{% endfor %}
+{% endblock %}

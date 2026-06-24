@@ -1,0 +1,53 @@
+{% extends 'layout.html' %}
+
+{% block title %}Admin Dashboard - StudyNova{% endblock %}
+
+{% block content %}
+<section class="page-header py-5 bg-primary text-white text-center" style="background: linear-gradient(135deg, #4361ee 0%, #7209b7 100%);">
+    <div class="container">
+        <h1 data-aos="fade-down">Admin Dashboard</h1>
+        <p class="lead" data-aos="fade-up">Manage StudyNova Resources</p>
+    </div>
+</section>
+
+<section class="admin-content py-5">
+    <div class="container">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 mb-4" data-aos="fade-right">
+                <div class="glass-card p-4">
+                    <h5 class="mb-3"><i class="fas fa-sliders-h"></i> Admin Menu</h5>
+                    <nav class="nav flex-column gap-2">
+                        <a class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">
+                            <i class="fas fa-chart-bar"></i> Analytics
+                        </a>
+                        <a class="nav-link {% if request.endpoint == 'admin_notes' or request.endpoint == 'admin_upload_note' or request.endpoint == 'admin_edit_note' or request.endpoint == 'admin_replace_note' or request.endpoint == 'admin_delete_note' %}active{% endif %}" href="{{ url_for('admin_notes') }}">
+                            <i class="fas fa-book"></i> Notes Management
+                        </a>
+                        <a class="nav-link {% if request.endpoint in ['admin_academic', 'admin_add_scheme', 'admin_add_semester', 'admin_add_branch', 'admin_add_subject'] %}active{% endif %}" href="{{ url_for('admin_academic') }}">
+                            <i class="fas fa-sitemap"></i> Academic Setup
+                        </a>
+                        <a class="nav-link {% if request.endpoint == 'admin_users' %}active{% endif %}" href="{{ url_for('admin_users') }}">
+                            <i class="fas fa-users"></i> Users
+                        </a>
+                        <a class="nav-link {% if 'competitive' in request.endpoint or 'exam' in request.endpoint %}active{% endif %}" href="{{ url_for('admin_competitive_exams') }}">
+                            <i class="fas fa-trophy"></i> Competitive Exams
+                        </a>
+                        <a class="nav-link {% if 'school' in request.endpoint %}active{% endif %}" href="{{ url_for('admin_school_notes') }}">
+                            <i class="fas fa-school"></i> School Notes
+                        </a>
+                        <a class="nav-link {% if request.endpoint == 'admin_storage' or request.endpoint == 'admin_download_backup' or request.endpoint == 'admin_restore_backup' %}active{% endif %}" href="{{ url_for('admin_storage') }}">
+                            <i class="fas fa-database"></i> Storage & Backup
+                        </a>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9" data-aos="fade-left">
+                {% block admin_content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

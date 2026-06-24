@@ -1,0 +1,57 @@
+{% extends 'layout.html' %}
+
+{% block title %}{{ cls.name }} - StudyNova{% endblock %}
+
+{% block content %}
+<section class="page-header py-5 bg-primary text-white text-center" style="background: linear-gradient(135deg, #4361ee 0%, #7209b7 100%);">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb justify-content-center text-white opacity-75">
+                <li class="breadcrumb-item"><a href="{{ url_for('school_notes_home') }}" class="text-white">School Notes</a></li>
+                <li class="breadcrumb-item active text-white">{{ cls.name }}</li>
+            </ol>
+        </nav>
+        <h1 data-aos="fade-down">{{ cls.name }}</h1>
+        {% if cls.description %}
+        <p class="lead" data-aos="fade-up">{{ cls.description }}</p>
+        {% endif %}
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        {% if session.get('user_role') == 'admin' %}
+        <div class="mb-4 text-end">
+            <a href="{{ url_for('admin_add_school_subject', class_id=cls.id) }}" class="btn btn-success"><i class="fas fa-plus"></i> Add Subject</a>
+        </div>
+        {% endif %}
+        {% if subjects %}
+        <div class="row g-4">
+            {% for subject in subjects %}
+            <div class="col-md-6">
+                <div class="glass-card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-book-open me-2"></i>{{ subject.name }}</h5>
+                        {% if subject.description %}
+                        <p class="card-text text-muted small">{{ subject.description }}</p>
+                        {% endif %}
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('school_notes_subject', subject_id=subject.id) }}" class="btn btn-primary">View Chapters</a>
+                            {% if session.get('user_role') == 'admin' %}
+                            <a href="{{ url_for('admin_add_school_chapter', subject_id=subject.id) }}" class="btn btn-outline-primary"><i class="fas fa-plus"></i> Chapter</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-book fa-4x text-muted mb-3"></i>
+            <h4>No subjects yet</h4>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

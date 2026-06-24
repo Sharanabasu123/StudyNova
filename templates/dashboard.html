@@ -1,0 +1,226 @@
+{% extends 'layout.html' %}
+
+{% block title %}Dashboard - StudyNova{% endblock %}
+
+{% block content %}
+<section class="page-header py-5 bg-primary text-white text-center" style="background: linear-gradient(135deg, #4361ee 0%, #7209b7 100%);">
+    <div class="container">
+        <div class="row justify-content-center align-items-center">
+            <div class="col-auto">
+                <div class="rounded-circle overflow-hidden border-4 border-white mx-auto mb-3" style="width:100px; height:100px;">
+                    {% if user.profile_photo %}
+                        {% if 'http' in user.profile_photo %}
+                            <img src="{{ user.profile_photo }}" class="w-100 h-100 object-fit-cover" alt="Profile">
+                        {% else %}
+                            <img src="{{ url_for('static', filename='uploads/' ~ user.profile_photo) }}" class="w-100 h-100 object-fit-cover" alt="Profile">
+                        {% endif %}
+                    {% else %}
+                        <div class="bg-white text-primary d-flex align-items-center justify-content-center w-100 h-100" style="font-size:2.5rem;">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <h1 data-aos="fade-down">
+            {% if is_admin %}
+                <i class="fas fa-crown me-2"></i>Admin Dashboard
+            {% else %}
+                <i class="fas fa-th-large me-2"></i>Dashboard
+            {% endif %}
+        </h1>
+        <p class="lead" data-aos="fade-up">Welcome, {{ user.get('username', 'User') }}!</p>
+        <a href="{{ url_for('profile') }}" class="btn btn-outline-light mt-2">
+            <i class="fas fa-user-edit me-2"></i>View Profile
+        </a>
+    </div>
+</section>
+
+<section class="dashboard-content py-5">
+    <div class="container">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 mb-4" data-aos="fade-right">
+                <div class="glass-card p-4 sticky-top" style="top: 80px;">
+                    <h5 class="mb-4">
+                        <i class="fas fa-compass me-2"></i>Menu
+                    </h5>
+                    <nav class="nav flex-column gap-2">
+                        {% if is_admin %}
+                            <!-- Admin Menu -->
+                            <a class="nav-link" href="{{ url_for('admin_upload_note') }}">
+                                <i class="fas fa-upload me-2"></i>Upload Notes
+                            </a>
+                            <a class="nav-link" href="{{ url_for('admin_notes') }}">
+                                <i class="fas fa-book me-2"></i>Manage Notes
+                            </a>
+                            <a class="nav-link" href="{{ url_for('admin_analytics') }}">
+                                <i class="fas fa-chart-bar me-2"></i>Analytics
+                            </a>
+                            <a class="nav-link" href="{{ url_for('admin_storage') }}">
+                                <i class="fas fa-database me-2"></i>Storage
+                            </a>
+                        {% else %}
+                            <!-- Normal User Menu -->
+                            <a class="nav-link" href="{{ url_for('notes_library') }}">
+                                <i class="fas fa-book-open me-2"></i>Notes Library
+                            </a>
+                            <a class="nav-link" href="{{ url_for('competitive_exams_home') }}">
+                                <i class="fas fa-trophy me-2"></i>Competitive Exams
+                            </a>
+                            <a class="nav-link" href="{{ url_for('school_notes_home') }}">
+                                <i class="fas fa-school me-2"></i>School Notes
+                            </a>
+                            <a class="nav-link" href="{{ url_for('about') }}">
+                                <i class="fas fa-info-circle me-2"></i>About
+                            </a>
+                            <a class="nav-link" href="{{ url_for('contact') }}">
+                                <i class="fas fa-envelope me-2"></i>Contact
+                            </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Main Content - Cards -->
+            <div class="col-md-9" data-aos="fade-left">
+                <div class="row g-4">
+                    {% if is_admin %}
+                        <!-- Admin Cards -->
+                        <div class="col-md-6">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="icon-box bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                            <i class="fas fa-upload fa-xl"></i>
+                                        </div>
+                                    </div>
+                                    <h5 class="card-title">Upload Notes</h5>
+                                    <p class="card-text text-muted">Add new study materials to the platform</p>
+                                    <a href="{{ url_for('admin_upload_note') }}" class="btn btn-primary">
+                                        <i class="fas fa-plus me-2"></i>Upload Now
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="icon-box bg-info text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                            <i class="fas fa-book fa-xl"></i>
+                                        </div>
+                                    </div>
+                                    <h5 class="card-title">Manage Notes</h5>
+                                    <p class="card-text text-muted">View, edit, and delete all study notes</p>
+                                    <a href="{{ url_for('admin_notes') }}" class="btn btn-info text-white">
+                                        <i class="fas fa-cog me-2"></i>Manage
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="icon-box bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                            <i class="fas fa-chart-line fa-xl"></i>
+                                        </div>
+                                    </div>
+                                    <h5 class="card-title">Analytics</h5>
+                                    <p class="card-text text-muted">View platform statistics and insights</p>
+                                    <a href="{{ url_for('admin_analytics') }}" class="btn btn-success">
+                                        <i class="fas fa-chart-pie me-2"></i>View Analytics
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="icon-box bg-warning text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                            <i class="fas fa-database fa-xl"></i>
+                                        </div>
+                                    </div>
+                                    <h5 class="card-title">Storage</h5>
+                                    <p class="card-text text-muted">Manage storage and database backups</p>
+                                    <a href="{{ url_for('admin_storage') }}" class="btn btn-warning text-white">
+                                        <i class="fas fa-server me-2"></i>Manage Storage
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <!-- Normal User Cards -->
+                        <div class="col-md-6">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="icon-box bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                            <i class="fas fa-book-open fa-xl"></i>
+                                        </div>
+                                    </div>
+                                    <h5 class="card-title">Notes Library</h5>
+                                    <p class="card-text text-muted">Browse all available study materials</p>
+                                    <a href="{{ url_for('notes_library') }}" class="btn btn-primary">
+                                        <i class="fas fa-search me-2"></i>Browse
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="icon-box bg-info text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                            <i class="fas fa-trophy fa-xl"></i>
+                                        </div>
+                                    </div>
+                                    <h5 class="card-title">Competitive Exams</h5>
+                                    <p class="card-text text-muted">Study materials for competitive exams</p>
+                                    <a href="{{ url_for('competitive_exams_home') }}" class="btn btn-info text-white">
+                                        <i class="fas fa-arrow-right me-2"></i>Explore
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="icon-box bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                            <i class="fas fa-school fa-xl"></i>
+                                        </div>
+                                    </div>
+                                    <h5 class="card-title">School Notes</h5>
+                                    <p class="card-text text-muted">Notes for school classes 6-10</p>
+                                    <a href="{{ url_for('school_notes_home') }}" class="btn btn-success">
+                                        <i class="fas fa-arrow-right me-2"></i>Explore
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="icon-box bg-warning text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                            <i class="fas fa-upload fa-xl"></i>
+                                        </div>
+                                    </div>
+                                    <h5 class="card-title">Upload Notes</h5>
+                                    <p class="card-text text-muted">Share your own study materials</p>
+                                    <a href="{{ url_for('upload') }}" class="btn btn-warning text-white">
+                                        <i class="fas fa-cloud-upload-alt me-2"></i>Upload
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

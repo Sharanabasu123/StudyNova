@@ -1,0 +1,19 @@
+{% extends 'admin_dashboard.html' %}
+
+{% block title %}Add Class - Admin - StudyNova{% endblock %}
+
+{% block admin_content %}
+<h2 class="mb-4">Add School Class</h2>
+<form method="POST" class="glass-card p-4">
+    <div class="mb-3">
+        <label for="name" class="form-label">Class Name</label>
+        <input type="text" class="form-control" id="name" name="name" required>
+    </div>
+    <div class="mb-3">
+        <label for="description" class="form-label">Description</label>
+        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Add Class</button>
+    <a href="{{ url_for('admin_school_notes') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+</form>
+{% endblock %}

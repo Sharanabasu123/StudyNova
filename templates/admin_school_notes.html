@@ -1,0 +1,73 @@
+{% extends 'admin_dashboard.html' %}
+
+{% block title %}Admin - School Notes - StudyNova{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>School Notes Management</h2>
+    <a href="{{ url_for('admin_add_school_class') }}" class="btn btn-success"><i class="fas fa-plus"></i> Add Class</a>
+</div>
+
+{% for cls in classes %}
+<div class="glass-card mb-4">
+    <div class="card-body">
+        <h4>{{ cls.name }}</h4>
+        {% if cls.description %}
+        <p class="text-muted">{{ cls.description }}</p>
+        {% endif %}
+        
+        {% set subjects = execute_query('SELECT * FROM school_subjects WHERE school_class_id = ?', (cls.id,), fetchall=True) %}
+        {% if subjects %}
+        <h5 class="mt-3 mb-2">Subjects</h5>
+        <div class="row g-3">
+            {% for subject in subjects %}
+            <div class="col-md-6">
+                <div class="border rounded p-3">
+                    <h6>{{ subject.name }}</h6>
+                    <a href="{{ url_for('school_notes_subject', subject_id=subject.id) }}" class="btn btn-sm btn-outline-primary me-1">View</a>
+                    <a href="{{ url_for('admin_add_school_chapter', subject_id=subject.id) }}" class="btn btn-sm btn-outline-success me-1">+ Chapter</a>
+                    
+                    {% set chapters = execute_query('SELECT * FROM school_chapters WHERE school_subject_id = ?', (subject.id,), fetchall=True) %}
+                    {% if chapters %}
+                    <h6 class="mt-3 mb-2 text-muted">Chapters</h6>
+                    <div class="mt-2">
+                        {% for chapter in chapters %}
+                            <div class="p-2 border rounded mb-2">
+                                <div class="d-flex gap-2 align-items-center">
+                                    {% if chapter.chapter_number %}
+                                    <span class="badge bg-primary">Ch. {{ chapter.chapter_number }}</span>
+                                    {% endif %}
+                                    <span>{{ chapter.name }}</span>
+                                    <a href="{{ url_for('admin_add_school_resource', chapter_id=chapter.id) }}" class="btn btn-sm btn-outline-success ms-auto"><i class="fas fa-upload"></i></a>
+                                </div>
+                                
+                                {% set res_list = execute_query('SELECT * FROM school_resources WHERE school_chapter_id = ?', (chapter.id,), fetchall=True) %}
+                                {% if res_list %}
+                                    {% for res in res_list %}
+                                    <div class="mt-2 ps-3 border-start">
+                                        <small class="d-block text-muted">{{ res.title }}</small>
+                                        <a href="{{ url_for('admin_replace_school_resource', resource_id=res.id) }}" class="btn btn-sm btn-outline-warning">Replace</a>
+                                        <form method="POST" action="{{ url_for('admin_delete_school_resource', resource_id=res.id) }}" class="d-inline" onsubmit="return confirm('Delete this resource?');">
+                                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                        </form>
+                                    </div>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="fas fa-school fa-4x text-muted mb-3"></i>
+    <h4>No classes yet</h4>
+</div>
+{% endfor %}
+{% endblock %}

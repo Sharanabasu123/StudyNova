@@ -1,0 +1,147 @@
+{% extends 'admin_dashboard.html' %}
+
+{% block content %}
+<div class="container my-4">
+    <h2 class="mb-4">📊 StudyNova Debug - Data Summary</h2>
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card glass-card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Database Type</h5>
+                </div>
+                <div class="card-body">
+                    <p class="lead">{{ summary.database }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="mb-3">📈 Table Record Counts</h4>
+    <div class="row mb-4">
+        {% for table, count in summary.tables.items() %}
+        <div class="col-md-4 mb-3">
+            <div class="card glass-card">
+                <div class="card-body text-center">
+                    <h6 class="card-title">{{ table|title }}</h6>
+                    <h3 class="text-primary">{{ count }}</h3>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <h4 class="mb-3">🔍 Data Quality Checks</h4>
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card glass-card">
+                <div class="card-body">
+                    <h6>Orphaned Resources</h6>
+                    <p class="lead text-{{ 'danger' if summary.data_quality.orphaned_resources > 0 else 'success' }}">
+                        {{ summary.data_quality.orphaned_resources }}
+                    </p>
+                    <small>Resources with invalid subject_id</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card glass-card">
+                <div class="card-body">
+                    <h6>Subjects with Resources</h6>
+                    <p class="lead text-info">{{ summary.data_quality.subjects_with_resources }}</p>
+                    <small>Unique subjects linked to resources</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="mb-3">📋 Sample Data</h4>
+    
+    <div class="mb-4">
+        <h5>Schemes</h5>
+        <table class="table table-sm table-striped glass-card p-2">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Active</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for scheme in summary.sample_data.schemes %}
+                <tr>
+                    <td>{{ scheme.id }}</td>
+                    <td>{{ scheme.name }}</td>
+                    <td>{{ scheme.is_active }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3">No schemes found</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mb-4">
+        <h5>Subjects (Sample)</h5>
+        <table class="table table-sm table-striped glass-card p-2">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>scheme_id</th>
+                    <th>semester_id</th>
+                    <th>branch_id</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for subject in summary.sample_data.subjects %}
+                <tr>
+                    <td>{{ subject.id }}</td>
+                    <td>{{ subject.code }}</td>
+                    <td>{{ subject.name }}</td>
+                    <td>{{ subject.scheme_id }}</td>
+                    <td>{{ subject.semester_id }}</td>
+                    <td>{{ subject.branch_id }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6">Subjects are being prepared</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mb-4">
+        <h5>Resources (Sample)</h5>
+        <table class="table table-sm table-striped glass-card p-2">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Subject</th>
+                    <th>Type</th>
+                    <th>Approved</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for resource in summary.sample_data.resources %}
+                <tr>
+                    <td>{{ resource.id }}</td>
+                    <td>{{ resource.title[:30] }}</td>
+                    <td>{{ resource.subject_name or 'N/A' }}</td>
+                    <td>{{ resource.resource_type }}</td>
+                    <td><span class="badge bg-{{ 'success' if resource.is_approved else 'warning' }}">{{ resource.is_approved }}</span></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5">No resources found</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mb-4">
+        <a href="{{ url_for('debug_test_flow') }}" class="btn btn-primary">Test Upload Flow →</a>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">Back to Admin</a>
+    </div>
+</div>
+{% endblock %}

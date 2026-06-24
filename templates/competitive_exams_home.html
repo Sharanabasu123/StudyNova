@@ -1,0 +1,64 @@
+{% extends 'layout.html' %}
+
+{% block title %}Competitive Exams - StudyNova{% endblock %}
+
+{% block content %}
+<section class="page-header py-5 bg-primary text-white text-center" style="background: linear-gradient(135deg, #4361ee 0%, #7209b7 100%);">
+    <div class="container">
+        <h1 data-aos="fade-down">Competitive Exams</h1>
+        <p class="lead" data-aos="fade-up">Prepare for your competitive exams with our curated study materials</p>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        <!-- Search Form -->
+        <div class="mb-5" data-aos="fade-up">
+            <form action="{{ url_for('competitive_exams_search') }}" method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" name="q" class="form-control" placeholder="Search notes, PDFs..." value="{{ query if query else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <select name="category_id" class="form-select">
+                        <option value="">All Categories</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="resource_type" class="form-select">
+                        <option value="">All Types</option>
+                        <option value="Notes">Notes</option>
+                        <option value="PDF">PDF</option>
+                        <option value="Question Banks">Question Banks</option>
+                        <option value="Previous Year Papers">Previous Year Papers</option>
+                        <option value="Passing Package">Passing Package</option>
+                        <option value="Solutions">Solutions</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Search</button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Categories Grid -->
+        <div class="row g-4">
+            {% for category in categories %}
+            <div class="col-md-4" data-aos="fade-up">
+                <div class="glass-card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-award me-2"></i>{{ category.name }}</h5>
+                        {% if category.description %}
+                        <p class="card-text text-muted small">{{ category.description }}</p>
+                        {% endif %}
+                        <a href="{{ url_for('competitive_exams_category', category_id=category.id) }}" class="btn btn-primary mt-2">View Topics</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

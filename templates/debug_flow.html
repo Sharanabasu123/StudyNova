@@ -1,0 +1,168 @@
+{% extends 'admin_dashboard.html' %}
+
+{% block content %}
+<div class="container my-4">
+    <h2 class="mb-4">🧪 Debug - Test Upload Flow</h2>
+    
+    <div class="card glass-card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Step-by-Step Flow Test</h5>
+        </div>
+        <div class="card-body">
+            <p>This tool tests the complete flow from Scheme selection through to Resources display.</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <h6>Step 1: Select Scheme</h6>
+            <form method="get" class="mb-3">
+                <select name="scheme_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">-- Select Scheme --</option>
+                    {% for scheme in flow.schemes %}
+                    <option value="{{ scheme.id }}" {% if scheme.id == flow.scheme_id %}selected{% endif %}>{{ scheme.name }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            <p class="text-muted small">Available: {{ flow.schemes_available }}</p>
+        </div>
+
+        <div class="col-md-3">
+            <h6>Step 2: Select Semester</h6>
+            {% if flow.scheme_id %}
+            <form method="get" class="mb-3">
+                <input type="hidden" name="scheme_id" value="{{ flow.scheme_id }}">
+                <select name="semester_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">-- Select Semester --</option>
+                    {% for semester in flow.semesters %}
+                    <option value="{{ semester.id }}" {% if semester.id == flow.semester_id %}selected{% endif %}>{{ semester.name }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            <p class="text-muted small">Available: {{ flow.semesters_available }}</p>
+            {% else %}
+            <p class="text-muted">Select scheme first</p>
+            {% endif %}
+        </div>
+
+        <div class="col-md-3">
+            <h6>Step 3: Select Branch (Optional)</h6>
+            {% if flow.semester_id %}
+            <form method="get" class="mb-3">
+                <input type="hidden" name="scheme_id" value="{{ flow.scheme_id }}">
+                <input type="hidden" name="semester_id" value="{{ flow.semester_id }}">
+                <select name="branch_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">-- All Branches --</option>
+                    {% for branch in flow.branches %}
+                    <option value="{{ branch.id }}" {% if branch.id == flow.branch_id %}selected{% endif %}>{{ branch.name }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            {% else %}
+            <p class="text-muted">Select semester first</p>
+            {% endif %}
+        </div>
+
+        <div class="col-md-3">
+            <h6>Step 4: Select Subject</h6>
+            {% if flow.semester_id %}
+            <form method="get" class="mb-3">
+                <input type="hidden" name="scheme_id" value="{{ flow.scheme_id }}">
+                <input type="hidden" name="semester_id" value="{{ flow.semester_id }}">
+                {% if flow.branch_id %}<input type="hidden" name="branch_id" value="{{ flow.branch_id }}">{% endif %}
+                <select name="subject_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">-- Select Subject --</option>
+                    {% for subject in flow.subjects %}
+                    <option value="{{ subject.id }}" {% if subject.id == flow.subject_id %}selected{% endif %}>{{ subject.code }} - {{ subject.name }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            <p class="text-muted small">Available: {{ flow.subjects_available }}</p>
+            {% else %}
+            <p class="text-muted">Select semester first</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Current Selection Summary -->
+    <div class="card glass-card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">📍 Current Selection</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm">
+                <tr>
+                    <td><strong>Scheme:</strong></td>
+                    <td>{{ flow.scheme_name or '(None)' }}</td>
+                    <td><strong>Scheme ID:</strong></td>
+                    <td>{{ flow.scheme_id or '(None)' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Semester:</strong></td>
+                    <td>{{ flow.semester_name or '(None)' }}</td>
+                    <td><strong>Semester ID:</strong></td>
+                    <td>{{ flow.semester_id or '(None)' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Branch:</strong></td>
+                    <td>{{ flow.branch_name or '(None)' }}</td>
+                    <td><strong>Branch ID:</strong></td>
+                    <td>{{ flow.branch_id or '(None)' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Subject:</strong></td>
+                    <td>{{ flow.subject_name or '(None)' }}</td>
+                    <td><strong>Subject ID:</strong></td>
+                    <td>{{ flow.subject_id or '(None)' }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Resources Available -->
+    {% if flow.subject_id %}
+    <div class="card glass-card mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">📚 Resources Available: {{ flow.resources_available }}</h5>
+        </div>
+        <div class="card-body">
+            {% if flow.resources %}
+            <table class="table table-sm table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Type</th>
+                        <th>Uploaded</th>
+                        <th>Views</th>
+                        <th>Downloads</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for resource in flow.resources %}
+                    <tr>
+                        <td>{{ resource.id }}</td>
+                        <td>{{ resource.title }}</td>
+                        <td><span class="badge bg-info">{{ resource.resource_type }}</span></td>
+                        <td>{{ resource.upload_date|string|first(10) }}</td>
+                        <td>{{ resource.view_count }}</td>
+                        <td>{{ resource.download_count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="alert alert-warning">
+                ⚠️ No resources found for this subject!
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="mb-4">
+        <a href="{{ url_for('debug_data_summary') }}" class="btn btn-secondary">← Back to Summary</a>
+        <a href="{{ url_for('admin_upload_note') }}" class="btn btn-primary">Go to Upload Page</a>
+    </div>
+</div>
+{% endblock %}

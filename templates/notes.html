@@ -3,78 +3,440 @@
 {% block title %}Notes Library - StudyNova{% endblock %}
 
 {% block content %}
-<section class="page-header py-5 bg-primary text-white text-center" style="background: linear-gradient(135deg, var(--dark-blue) 0%, var(--primary-color) 100%);">
+<section class="page-header py-5 bg-primary text-white text-center" style="background: linear-gradient(135deg, #4361ee 0%, #7209b7 100%);">
     <div class="container">
-        <h1 data-aos="fade-down">Notes Library</h1>
-        <p class="lead" data-aos="fade-up">Explore thousands of quality study materials shared by students.</p>
+        <h1 data-aos="fade-down">
+            <i class="fas fa-book-open me-2"></i>Notes Library
+        </h1>
+        {% if subject %}
+        <p class="lead" data-aos="fade-up">{{ subject.code }} - {{ subject.name }}</p>
+        {% endif %}
     </div>
 </section>
 
 <section class="library-section py-5">
     <div class="container">
-        <!-- Search and Filter Bar -->
-        <div class="search-filter-bar mb-5" data-aos="fade-up">
-            <div class="glass-card p-4">
-                <form action="/notes" method="GET" class="row g-3">
-                    <div class="col-md-5">
-                        <div class="input-group">
-                            <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
-                            <input type="text" name="search" class="form-control border-start-0" placeholder="Search by title or subject..." value="{{ request.args.get('search', '') }}">
+        <!-- Breadcrumb Navigation -->
+        {% if scheme_id or semester_id or cycle_id or branch_id or subject_id %}
+        <div class="mb-4" data-aos="fade-right">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/notes" class="text-primary">Home</a></li>
+                    {% if scheme_id %}
+                        {% for s in schemes %}
+                            {% if s.id|string == scheme_id|string %}
+                                <li class="breadcrumb-item active" aria-current="page">{{ s.name }}</li>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                    {% if semester_id %}
+                        {% for sem in semesters %}
+                            {% if sem.id|string == semester_id|string %}
+                                <li class="breadcrumb-item active" aria-current="page">{{ sem.name }}</li>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                    {% if cycle_id %}
+                        {% for c in cycles %}
+                            {% if c.id|string == cycle_id|string %}
+                                <li class="breadcrumb-item active" aria-current="page">{{ c.name }}</li>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                    {% if branch_id %}
+                        {% for b in branches %}
+                            {% if b.id|string == branch_id|string %}
+                                <li class="breadcrumb-item active" aria-current="page">{{ b.name }}</li>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                    {% if subject_id %}
+                        {% for subj in subjects %}
+                            {% if subj.id|string == subject_id|string %}
+                                <li class="breadcrumb-item active" aria-current="page">{{ subj.code }}</li>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </ol>
+            </nav>
+        </div>
+        {% endif %}
+
+        {% if selected_resource %}
+        <!-- Resource Viewer -->
+        <div class="mb-4" data-aos="fade-up">
+            <a href="/notes?scheme_id={{ scheme_id }}&semester_id={{ semester_id }}{% if cycle_id %}&cycle_id={{ cycle_id }}{% endif %}{% if branch_id %}&branch_id={{ branch_id }}{% endif %}&subject_id={{ subject_id }}{% if section %}&section={{ section }}{% endif %}" class="btn btn-outline-primary mb-3">
+                <i class="fas fa-arrow-left me-2"></i>Back to {{ section | replace('module', 'Module ') | replace('important_questions', 'Important Questions') | replace('pyq', 'Question Papers') | replace('solutions', 'Solutions') | replace('passing_package', 'Passing Package') | replace('lab_manual', 'Lab Manual') }}
+            </a>
+        </div>
+        
+        <div class="glass-card p-4" data-aos="zoom-in">
+            <h3 class="mb-4">{{ selected_resource.title }}</h3>
+            
+            <div class="mb-4">
+                <!-- PDF Viewer -->
+                {% if selected_resource.filename %}
+                    {% if 'http' in selected_resource.filename %}
+                        <!-- Cloudinary URL -->
+                        <div class="ratio ratio-16x9">
+                            <iframe src="https://docs.google.com/viewer?url={{ selected_resource.filename | urlencode }}&embedded=true" 
+                                    title="{{ selected_resource.title }}" 
+                                    allowfullscreen></iframe>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <select name="category" class="form-select">
-                            {% for cat in categories %}
-                            <option value="{{ cat }}" {% if current_category == cat %}selected{% endif %}>{{ cat }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
-                    </div>
-                </form>
+                    {% else %}
+                        <!-- Local Upload -->
+                        <div class="ratio ratio-16x9">
+                            <iframe src="/preview/{{ selected_resource.filename }}" 
+                                    title="{{ selected_resource.title }}" 
+                                    allowfullscreen></iframe>
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+            
+            <div class="d-flex flex-wrap gap-2 justify-content-center">
+                {% if selected_resource.filename %}
+                    <a href="/download/{{ selected_resource.filename }}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+                        <i class="fas fa-download me-2"></i>Download
+                    </a>
+                {% endif %}
+                {% if 'http' in selected_resource.filename %}
+                    <a href="{{ selected_resource.filename }}" class="btn btn-outline-primary" target="_blank" rel="noopener noreferrer">
+                        <i class="fas fa-external-link-alt me-2"></i>Full Screen
+                    </a>
+                {% endif %}
+            </div>
+            
+            <div class="mt-4 text-center text-muted">
+                <small>
+                    <i class="fas fa-eye me-1"></i>{{ selected_resource.view_count }} views · 
+                    <i class="fas fa-download me-1"></i>{{ selected_resource.download_count }} downloads
+                </small>
             </div>
         </div>
-
-        <!-- Notes Grid -->
-        <div class="row g-4">
-            {% if notes %}
-                {% for note in notes %}
-                <div class="col-lg-4 col-md-6" data-aos="zoom-in" data-aos-delay="{{ loop.index % 3 * 100 }}">
-                    <div class="glass-card note-card">
-                        <div class="note-icon">
-                            <i class="{{ note.icon }}"></i>
-                        </div>
-                        <div class="note-badge">{{ note.category }}</div>
-                        <h3>{{ note.title }}</h3>
-                        <p class="text-muted mb-3"><i class="fas fa-book-open me-2"></i>{{ note.subject }}</p>
-                        
-                        <div class="note-meta border-top pt-3 d-flex justify-content-between align-items-center">
-                            <div class="date-info">
-                                <small class="text-muted d-block">Uploaded on</small>
-                                <strong>{{ note.date }}</strong>
-                            </div>
-                            <div class="actions d-flex gap-2">
-                                <a href="/preview/{{ note.filename }}" class="btn btn-outline-primary">
-                                    <i class="fas fa-eye me-2"></i>Preview
-                                </a>
-                                <a href="/download/{{ note.filename }}" class="btn btn-primary">
-                                    <i class="fas fa-download me-2"></i>Download
-                                </a>
+        
+        {% else %}
+        <!-- Selection UI -->
+        <div class="mb-5">
+            <!-- Step 1: Scheme -->
+            {% if not scheme_id %}
+            <h4 class="mb-4 text-center" data-aos="fade-up">Select Scheme</h4>
+            <div class="row g-4 justify-content-center" data-aos="fade-up">
+                {% for s in schemes %}
+                <div class="col-lg-4 col-md-6">
+                    <a href="/notes?scheme_id={{ s.id }}" class="text-decoration-none">
+                        <div class="card h-100 border-0 shadow-sm hover-lift">
+                            <div class="card-body text-center p-5" style="background: linear-gradient(135deg, #e0f7fa 0%, #f3e5f5 100%); border-radius: 12px;">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem;">
+                                    <i class="fas fa-graduation-cap"></i>
+                                </div>
+                                <h4 class="card-title mb-2">{{ s.name }}</h4>
+                                <p class="text-muted mb-0">{{ s.description or 'VTU Scheme' }}</p>
+                                <div class="mt-4">
+                                    <span class="btn btn-primary">Select Scheme</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
                 {% endfor %}
-            {% else %}
-                <div class="col-12 text-center py-5">
-                    <img src="https://cdni.iconscout.com/illustration/premium/thumb/no-data-found-8867280-7265556.png" alt="No results" class="img-fluid mb-4" style="max-width: 300px;">
-                    <h3>No notes found matching your criteria.</h3>
-                    <p>Try searching with different keywords or browse other categories.</p>
-                    <a href="/notes" class="btn btn-outline-primary mt-3">Reset Filters</a>
+            </div>
+            {% endif %}
+
+            <!-- Step 2: Semester -->
+            {% if scheme_id and not semester_id %}
+            <h4 class="mb-4 text-center" data-aos="fade-up">Select Semester</h4>
+            <div class="row g-3 justify-content-center" data-aos="fade-up">
+                {% for sem in semesters %}
+                <div class="col-lg-2 col-md-4 col-6">
+                    <a href="/notes?scheme_id={{ scheme_id }}&semester_id={{ sem.id }}" class="text-decoration-none">
+                        <div class="card border-0 shadow-sm hover-lift h-100">
+                            <div class="card-body text-center p-4">
+                                <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center mx-auto mb-2" style="width: 50px; height: 50px;">
+                                    <span class="fw-bold">{{ sem.semester_number }}</span>
+                                </div>
+                                <h6 class="mb-0">{{ sem.name }}</h6>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Step 3: Cycle/Branch (First Year) or Branch (Higher) -->
+            {% if scheme_id and semester_id and not cycle_id and not branch_id %}
+                {% if is_first_year %}
+                <h4 class="mb-4 text-center" data-aos="fade-up">Select Cycle</h4>
+                <div class="row g-3 justify-content-center mb-4" data-aos="fade-up">
+                    {% for c in cycles %}
+                    <div class="col-lg-3 col-md-6">
+                        <a href="/notes?scheme_id={{ scheme_id }}&semester_id={{ semester_id }}&cycle_id={{ c.id }}" class="text-decoration-none">
+                            <div class="card border-0 shadow-sm hover-lift h-100">
+                                <div class="card-body text-center p-4" style="background: linear-gradient(135deg, #fce4ec 0%, #f3e5f5 100%); border-radius: 12px;">
+                                    <div class="rounded-circle bg-info text-white d-flex align-items-center justify-content-center mx-auto mb-2" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                                        {% if 'P' in c.name %}
+                                            <i class="fas fa-microscope"></i>
+                                        {% else %}
+                                            <i class="fas fa-flask"></i>
+                                        {% endif %}
+                                    </div>
+                                    <h5 class="mb-0">{{ c.name }}</h5>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <h4 class="mb-4 text-center" data-aos="fade-up">Select Branch</h4>
+                <div class="row g-3 justify-content-center" data-aos="fade-up">
+                    {% for b in branches %}
+                    <div class="col-lg-3 col-md-4 col-sm-6">
+                        <a href="/notes?scheme_id={{ scheme_id }}&semester_id={{ semester_id }}{% if cycle_id %}&cycle_id={{ cycle_id }}{% endif %}&branch_id={{ b.id }}" class="text-decoration-none">
+                            <div class="card border-0 shadow-sm hover-lift h-100">
+                                <div class="card-body text-center p-4" style="background: linear-gradient(135deg, #e8f5e9 0%, #f3e5f5 100%); border-radius: 12px;">
+                                    <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center mx-auto mb-2" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                                        <i class="fas fa-code"></i>
+                                    </div>
+                                    <h6 class="mb-1">{{ b.name }}</h6>
+                                    <small class="text-muted">{{ b.code }}</small>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
                 </div>
             {% endif %}
+
+            <!-- Step 4: Subject -->
+            {% if scheme_id and semester_id and (cycle_id or branch_id) and not subject_id %}
+                <h4 class="mb-4 text-center" data-aos="fade-up">Select Subject</h4>
+                {% if subjects %}
+                    <div class="row g-3 justify-content-center" data-aos="fade-up">
+                        {% for subj in subjects %}
+                        <div class="col-lg-4 col-md-6">
+                            <a href="/notes?scheme_id={{ scheme_id }}&semester_id={{ semester_id }}{% if cycle_id %}&cycle_id={{ cycle_id }}{% endif %}{% if branch_id %}&branch_id={{ branch_id }}{% endif %}&subject_id={{ subj.id }}" class="text-decoration-none">
+                                <div class="glass-card p-4 hover-lift">
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-gradient-to-r text-white d-flex align-items-center justify-content-center me-3" style="width: 50px; height:50px;">
+                                            <i class="fas fa-book"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0">{{ subj.code }}</h6>
+                                            <h5 class="mb-0">{{ subj.name }}</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center" data-aos="fade-up">
+                        <img src="https://cdni.iconscout.com/illustration/premium/thumb/no-data-found-8867280-7265556.png" alt="No subjects" class="img-fluid mb-4" style="max-width: 250px;">
+                        <h3 class="mb-3">Subjects are being prepared</h3>
+                        <p class="text-muted mb-4">Please go back and choose the scheme, semester, and branch again.</p>
+                        <a href="/notes" class="btn btn-outline-primary">
+                            <i class="fas fa-arrow-left me-2"></i>Back
+                        </a>
+                    </div>
+                {% endif %}
+            {% endif %}
+
+            <!-- Step 5: Section Selection (when subject is selected but no section/resource) -->
+            {% if subject_id and not section %}
+                <h4 class="mb-4 text-center" data-aos="fade-up">Select Resource Type</h4>
+                <div class="row g-3 justify-content-center" data-aos="fade-up">
+                    <!-- Module 1 to 5 -->
+                    {% for module in ['1', '2', '3', '4', '5'] %}
+                        {% set section_name = 'module' ~ module %}
+                        {% set has_resources = all_resources | selectattr('resource_type', 'equalto', section_name) | list | length > 0 %}
+                        <div class="col-lg-3 col-md-4 col-6">
+                            <a href="/notes?scheme_id={{ scheme_id }}&semester_id={{ semester_id }}{% if cycle_id %}&cycle_id={{ cycle_id }}{% endif %}{% if branch_id %}&branch_id={{ branch_id }}{% endif %}&subject_id={{ subject_id }}&section={{ section_name }}" class="text-decoration-none">
+                                <div class="card border-0 shadow-sm hover-lift h-100">
+                                    <div class="card-body text-center p-4" style="background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); border-radius: 12px;">
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                                            <i class="fas fa-book"></i>
+                                        </div>
+                                        <h5 class="mb-0">Module {{ module }}</h5>
+                                        <small class="text-muted">{{ 'Notes' if has_resources else 'No notes yet' }}</small>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    {% endfor %}
+                    <!-- Important Questions -->
+                    {% set imp_resources = all_resources | selectattr('resource_type', 'equalto', 'important_questions') | list %}
+                    <div class="col-lg-3 col-md-4 col-6">
+                        <a href="/notes?scheme_id={{ scheme_id }}&semester_id={{ semester_id }}{% if cycle_id %}&cycle_id={{ cycle_id }}{% endif %}{% if branch_id %}&branch_id={{ branch_id }}{% endif %}&subject_id={{ subject_id }}&section=important_questions" class="text-decoration-none">
+                            <div class="card border-0 shadow-sm hover-lift h-100">
+                                <div class="card-body text-center p-4" style="background: linear-gradient(135deg, #fff3e0 0%, #f3e5f5 100%); border-radius: 12px;">
+                                    <div class="rounded-circle bg-warning text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                                        <i class="fas fa-file-alt"></i>
+                                    </div>
+                                    <h5 class="mb-0">Important Questions</h5>
+                                    <small class="text-muted">{{ 'Available' if imp_resources else 'Not yet' }}</small>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <!-- Question Papers -->
+                    {% set pyq_resources = all_resources | selectattr('resource_type', 'equalto', 'pyq') | list %}
+                    <div class="col-lg-3 col-md-4 col-6">
+                        <a href="/notes?scheme_id={{ scheme_id }}&semester_id={{ semester_id }}{% if cycle_id %}&cycle_id={{ cycle_id }}{% endif %}{% if branch_id %}&branch_id={{ branch_id }}{% endif %}&subject_id={{ subject_id }}&section=pyq" class="text-decoration-none">
+                            <div class="card border-0 shadow-sm hover-lift h-100">
+                                <div class="card-body text-center p-4" style="background: linear-gradient(135deg, #ffebee 0%, #f3e5f5 100%); border-radius: 12px;">
+                                    <div class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </div>
+                                    <h5 class="mb-0">Question Papers</h5>
+                                    <small class="text-muted">{{ 'Available' if pyq_resources else 'Not yet' }}</small>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <!-- Question Paper Solutions -->
+                    {% set sol_resources = all_resources | selectattr('resource_type', 'equalto', 'solutions') | list %}
+                    <div class="col-lg-3 col-md-4 col-6">
+                        <a href="/notes?scheme_id={{ scheme_id }}&semester_id={{ semester_id }}{% if cycle_id %}&cycle_id={{ cycle_id }}{% endif %}{% if branch_id %}&branch_id={{ branch_id }}{% endif %}&subject_id={{ subject_id }}&section=solutions" class="text-decoration-none">
+                            <div class="card border-0 shadow-sm hover-lift h-100">
+                                <div class="card-body text-center p-4" style="background: linear-gradient(135deg, #e8f5e9 0%, #f3e5f5 100%); border-radius: 12px;">
+                                    <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    <h5 class="mb-0">Solutions</h5>
+                                    <small class="text-muted">{{ 'Available' if sol_resources else 'Not yet' }}</small>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <!-- Passing Package -->
+                    {% set pp_resources = all_resources | selectattr('resource_type', 'equalto', 'passing_package') | list %}
+                    <div class="col-lg-3 col-md-4 col-6">
+                        <a href="/notes?scheme_id={{ scheme_id }}&semester_id={{ semester_id }}{% if cycle_id %}&cycle_id={{ cycle_id }}{% endif %}{% if branch_id %}&branch_id={{ branch_id }}{% endif %}&subject_id={{ subject_id }}&section=passing_package" class="text-decoration-none">
+                            <div class="card border-0 shadow-sm hover-lift h-100">
+                                <div class="card-body text-center p-4" style="background: linear-gradient(135deg, #f3e5f5 0%, #e8eaf6 100%); border-radius: 12px;">
+                                    <div class="rounded-circle bg-purple text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                                        <i class="fas fa-bullseye"></i>
+                                    </div>
+                                    <h5 class="mb-0">Passing Package</h5>
+                                    <small class="text-muted">{{ 'Available' if pp_resources else 'Not yet' }}</small>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <!-- Lab Manual -->
+                    {% set lm_resources = all_resources | selectattr('resource_type', 'equalto', 'lab_manual') | list %}
+                    <div class="col-lg-3 col-md-4 col-6">
+                        <a href="/notes?scheme_id={{ scheme_id }}&semester_id={{ semester_id }}{% if cycle_id %}&cycle_id={{ cycle_id }}{% endif %}{% if branch_id %}&branch_id={{ branch_id }}{% endif %}&subject_id={{ subject_id }}&section=lab_manual" class="text-decoration-none">
+                            <div class="card border-0 shadow-sm hover-lift h-100">
+                                <div class="card-body text-center p-4" style="background: linear-gradient(135deg, #e0f7fa 0%, #f3e5f5 100%); border-radius: 12px;">
+                                    <div class="rounded-circle bg-teal text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                                        <i class="fas fa-flask"></i>
+                                    </div>
+                                    <h5 class="mb-0">Lab Manual</h5>
+                                    <small class="text-muted">{{ 'Available' if lm_resources else 'Not yet' }}</small>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Step 6: Resources for selected section -->
+            {% if subject_id and section %}
+                <div class="mb-4" data-aos="fade-up">
+                    <a href="/notes?scheme_id={{ scheme_id }}&semester_id={{ semester_id }}{% if cycle_id %}&cycle_id={{ cycle_id }}{% endif %}{% if branch_id %}&branch_id={{ branch_id }}{% endif %}&subject_id={{ subject_id }}" class="btn btn-outline-primary mb-3">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Sections
+                    </a>
+                </div>
+                {% set section_resources = all_resources | selectattr('resource_type', 'equalto', section) | list %}
+                {% if section_resources %}
+                    <h4 class="mb-4 text-center" data-aos="fade-up">
+                        {% if section.startswith('module') %}Module {{ section[-1] }} Notes{% endif %}
+                        {% if section == 'important_questions' %}Important Questions{% endif %}
+                        {% if section == 'pyq' %}Question Papers{% endif %}
+                        {% if section == 'solutions' %}Question Paper Solutions{% endif %}
+                        {% if section == 'passing_package' %}Passing Package{% endif %}
+                        {% if section == 'lab_manual' %}Lab Manual{% endif %}
+                    </h4>
+                    <div class="row g-4 justify-content-center">
+                        {% for res in section_resources %}
+                            <div class="col-lg-3 col-md-6" data-aos="zoom-in" data-aos-delay="{{ (loop.index0 % 4) * 100 }}">
+                                <div class="glass-card h-100 p-4 hover-lift">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="note-icon me-3">
+                                            {% if section.startswith('module') %}
+                                                <i class="fas fa-book text-primary"></i>
+                                            {% elif section == 'important_questions' %}
+                                                <i class="fas fa-file-alt text-warning"></i>
+                                            {% elif section == 'pyq' %}
+                                                <i class="fas fa-file-pdf text-danger"></i>
+                                            {% elif section == 'solutions' %}
+                                                <i class="fas fa-check-circle text-success"></i>
+                                            {% elif section == 'passing_package' %}
+                                                <i class="fas fa-bullseye text-purple"></i>
+                                            {% elif section == 'lab_manual' %}
+                                                <i class="fas fa-flask text-teal"></i>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <h5 class="mb-2">{{ res.title }}</h5>
+                                    <p class="text-muted small mb-2">
+                                        <i class="fas fa-calendar me-1"></i> {{ res.date }}
+                                    </p>
+                                    <div class="d-flex flex-wrap gap-2 mb-3">
+                                        <!-- Preview Button -->
+                                        <a href="/preview/{{ res.filename }}" class="btn btn-outline-primary btn-sm flex-grow-1" target="_blank" rel="noopener noreferrer">
+                                            <i class="fas fa-eye me-1"></i>Preview
+                                        </a>
+                                        <!-- Download Button -->
+                                        <a href="/download/{{ res.filename }}" class="btn btn-primary btn-sm flex-grow-1">
+                                            <i class="fas fa-download me-1"></i>Download
+                                        </a>
+                                    </div>
+                                    <div class="note-meta border-top pt-3 text-muted small">
+                                        <i class="fas fa-eye"></i> {{ res.view_count }} · 
+                                        <i class="fas fa-download"></i> {{ res.download_count }}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center" data-aos="fade-up">
+                        <img src="https://cdni.iconscout.com/illustration/premium/thumb/no-data-found-8867280-7265556.png" alt="No resources" class="img-fluid mb-4" style="max-width: 300px;">
+                        <h3 class="mb-3">No resources for this section</h3>
+                        <p class="text-muted mb-4">Resources will be added soon!</p>
+                        <a href="/notes?scheme_id={{ scheme_id }}&semester_id={{ semester_id }}{% if cycle_id %}&cycle_id={{ cycle_id }}{% endif %}{% if branch_id %}&branch_id={{ branch_id }}{% endif %}&subject_id={{ subject_id }}" class="btn btn-outline-primary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Sections
+                        </a>
+                    </div>
+                {% endif %}
+            {% endif %}
         </div>
+        {% endif %}
     </div>
 </section>
+
+<style>
+.hover-lift {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.hover-lift:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+.bg-gradient-to-r {
+    background: linear-gradient(135deg, #4361ee 0%, #7209b7 100%);
+}
+.text-teal {
+    color: #20c997 !important;
+}
+.text-purple {
+    color: #6610f2 !important;
+}
+</style>
 {% endblock %}

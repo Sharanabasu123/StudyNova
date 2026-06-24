@@ -6,12 +6,14 @@ note preview/download support, and a modern learning dashboard experience.
 
 ## Repository Overview
 
-- `app.py` — Flask application entrypoint and route definitions
-- `templates/` — HTML templates for all frontend views
-- `static/` — CSS, JavaScript, and asset files
-- `requirements.txt` — Python dependencies
-- `studynova.db` — local SQLite database used for app data
-- `studynova.sql` — SQL schema and seed data references
+- `app.py` ï¿½ Flask application entrypoint and route definitions
+- `templates/` ï¿½ HTML templates for all frontend views
+- `static/` ï¿½ CSS, JavaScript, and asset files
+- `requirements.txt` ï¿½ Python dependencies
+- `studynova.db` ï¿½ local SQLite database used for app data
+- `studynova.sql` ï¿½ SQL schema and seed data references
+- `mysql_schema.sql` ï¿½ MySQL schema and default academic seed script
+- `mysql_migration.sql` ï¿½ MySQL legacy `notes` to `resources` migration script
 
 ## Key Features
 

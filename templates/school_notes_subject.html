@@ -1,0 +1,55 @@
+{% extends 'layout.html' %}
+
+{% block title %}{{ subject.name }} - {{ subject.class_name }} - StudyNova{% endblock %}
+
+{% block content %}
+<section class="page-header py-5 bg-primary text-white text-center" style="background: linear-gradient(135deg, #4361ee 0%, #7209b7 100%);">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb justify-content-center text-white opacity-75">
+                <li class="breadcrumb-item"><a href="{{ url_for('school_notes_home') }}" class="text-white">School Notes</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('school_notes_class', class_id=subject.class_id) }}" class="text-white">{{ subject.class_name }}</a></li>
+                <li class="breadcrumb-item active text-white">{{ subject.name }}</li>
+            </ol>
+        </nav>
+        <h1 data-aos="fade-down">{{ subject.name }}</h1>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        {% if session.get('user_role') == 'admin' %}
+        <div class="mb-4 text-end">
+            <a href="{{ url_for('admin_add_school_chapter', subject_id=subject.id) }}" class="btn btn-success"><i class="fas fa-plus"></i> Add Chapter</a>
+        </div>
+        {% endif %}
+        {% if chapters %}
+        <div class="row g-4">
+            {% for chapter in chapters %}
+            <div class="col-md-4">
+                <div class="glass-card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-2">
+                            {% if chapter.chapter_number %}
+                            <span class="badge bg-primary me-2">Ch. {{ chapter.chapter_number }}</span>
+                            {% endif %}
+                            <h5 class="card-title mb-0">{{ chapter.name }}</h5>
+                        </div>
+                        {% if chapter.description %}
+                        <p class="card-text text-muted small">{{ chapter.description }}</p>
+                        {% endif %}
+                        <a href="{{ url_for('school_notes_chapter', chapter_id=chapter.id) }}" class="btn btn-primary">View Resources</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-list fa-4x text-muted mb-3"></i>
+            <h4>No chapters yet</h4>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

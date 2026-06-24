@@ -53,8 +53,74 @@
     </div>
 </section>
 
-<!-- Featured Notes -->
-<section class="featured-notes py-5 bg-light">
+<!-- Popular Content -->
+<section class="popular-content py-5 bg-light">
+    <div class="container">
+        <div class="section-header text-center mb-5" data-aos="fade-up">
+            <h2 class="section-title">🔥 Popular Content</h2>
+            <p>Trending, most downloaded, and most viewed notes</p>
+        </div>
+
+        <div class="row g-4 mb-5">
+            <div class="col-lg-4" data-aos="fade-up" data-aos-delay="100">
+                <div class="glass-card h-100">
+                    <h5 class="mb-3"><i class="fas fa-fire text-danger"></i> Trending Notes</h5>
+                    <div class="list-group list-group-flush">
+                        {% for note in trending_notes %}
+                        <a href="/preview/{{ note.filename }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between">
+                                <span>{{ note.title }}</span>
+                                <small class="text-muted">{{ note.download_count + note.view_count }} interactions</small>
+                            </div>
+                        </a>
+                        {% else %}
+                        <p class="text-muted text-center">No trending notes yet</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4" data-aos="fade-up" data-aos-delay="200">
+                <div class="glass-card h-100">
+                    <h5 class="mb-3"><i class="fas fa-download text-primary"></i> Most Downloaded</h5>
+                    <div class="list-group list-group-flush">
+                        {% for note in most_downloaded_notes %}
+                        <a href="/preview/{{ note.filename }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between">
+                                <span>{{ note.title }}</span>
+                                <span class="badge bg-primary">{{ note.download_count }}</span>
+                            </div>
+                        </a>
+                        {% else %}
+                        <p class="text-muted text-center">No downloads yet</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4" data-aos="fade-up" data-aos-delay="300">
+                <div class="glass-card h-100">
+                    <h5 class="mb-3"><i class="fas fa-eye text-info"></i> Most Viewed</h5>
+                    <div class="list-group list-group-flush">
+                        {% for note in most_viewed_notes %}
+                        <a href="/preview/{{ note.filename }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between">
+                                <span>{{ note.title }}</span>
+                                <span class="badge bg-info text-dark">{{ note.view_count }}</span>
+                            </div>
+                        </a>
+                        {% else %}
+                        <p class="text-muted text-center">No views yet</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Latest Notes -->
+<section class="featured-notes py-5">
     <div class="container">
         <div class="section-header text-center mb-5" data-aos="fade-up">
             <h2 class="section-title">Latest Study Materials</h2>
@@ -88,7 +154,7 @@
 </section>
 
 <!-- Features Section -->
-<section class="features-section py-5">
+<section class="features-section py-5 bg-light">
     <div class="container">
         <div class="row align-items-center">
             <div class="col-lg-6" data-aos="fade-right">
@@ -123,6 +189,36 @@
                         <p>High-speed servers ensure your materials are ready when you are.</p>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Social Connect Section -->
+<section class="social-connect-section py-5">
+    <div class="container">
+        <div class="section-header text-center mb-5" data-aos="fade-up">
+            <h2 class="section-title">Connect With StudyNova</h2>
+            <p>Follow us on social media for updates, study tips, and more!</p>
+        </div>
+        <div class="row g-4 justify-content-center">
+            <div class="col-md-4" data-aos="zoom-in" data-aos-delay="100">
+                <a href="https://www.instagram.com/studynovaofficial" target="_blank" rel="noopener noreferrer" class="glass-card h-100 text-decoration-none text-dark d-flex flex-column align-items-center justify-content-center p-4">
+                    <i class="fab fa-instagram fa-4x text-primary mb-3"></i>
+                    <h5>Follow StudyNova on Instagram</h5>
+                </a>
+            </div>
+            <div class="col-md-4" data-aos="zoom-in" data-aos-delay="200">
+                <a href="https://whatsapp.com/channel/0029Vb5gpMZATRSflFEUDK0H" target="_blank" rel="noopener noreferrer" class="glass-card h-100 text-decoration-none text-dark d-flex flex-column align-items-center justify-content-center p-4">
+                    <i class="fab fa-whatsapp fa-4x text-success mb-3"></i>
+                    <h5>Follow StudyNova on WhatsApp</h5>
+                </a>
+            </div>
+            <div class="col-md-4" data-aos="zoom-in" data-aos-delay="300">
+                <a href="https://youtube.com/@studynova26" target="_blank" rel="noopener noreferrer" class="glass-card h-100 text-decoration-none text-dark d-flex flex-column align-items-center justify-content-center p-4">
+                    <i class="fab fa-youtube fa-4x text-danger mb-3"></i>
+                    <h5>Subscribe to StudyNova on YouTube</h5>
+                </a>
             </div>
         </div>
     </div>

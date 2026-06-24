@@ -1,0 +1,211 @@
+{% extends 'admin_dashboard.html' %}
+
+{% block content %}
+<div class="container my-4">
+    <h2 class="mb-4 text-center">Upload Note</h2>
+    <div class="glass-card p-4">
+        <form method="POST" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label class="form-label">Scheme *</label>
+                <select name="scheme_id" class="form-select" id="schemeSelect" required>
+                    <option value="">Select Scheme</option>
+                    {% for scheme in schemes %}
+                        <option value="{{ scheme.id }}">{{ scheme.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Semester *</label>
+                <select name="semester_id" class="form-select" id="semesterSelect" required disabled>
+                    <option value="">Select Semester</option>
+                </select>
+            </div>
+            <div class="mb-3" id="cycleField">
+                <label class="form-label">Cycle</label>
+                <select name="cycle_id" class="form-select" id="cycleSelect" disabled>
+                    <option value="">Select Cycle</option>
+                    {% for cycle in cycles %}
+                        <option value="{{ cycle.id }}">{{ cycle.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3" id="branchField">
+                <label class="form-label">Branch</label>
+                <select name="branch_id" class="form-select" id="branchSelect" disabled>
+                    <option value="">Select Branch</option>
+                    {% for branch in branches %}
+                        <option value="{{ branch.id }}">{{ branch.name }} ({{ branch.code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Subject *</label>
+                <select name="subject_id" class="form-select" id="subjectSelect" required disabled>
+                    <option value="">Select Subject</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Content Type *</label>
+                <select name="resource_type" class="form-select" id="categorySelect" required>
+                    <option value="">Select Content Type</option>
+                    <option value="module1">Module 1 Notes</option>
+                    <option value="module2">Module 2 Notes</option>
+                    <option value="module3">Module 3 Notes</option>
+                    <option value="module4">Module 4 Notes</option>
+                    <option value="module5">Module 5 Notes</option>
+                    <option value="important_questions">Important Questions</option>
+                    <option value="lab_manual">Lab Manual</option>
+                    <option value="pyq">Question Paper</option>
+                    <option value="solutions">Question Paper Solution</option>
+                    <option value="passing_package">Passing Package</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Upload File *</label>
+                <input type="file" name="file" class="form-control" accept=".pdf,.doc,.docx,.ppt,.pptx" required>
+            </div>
+            <div class="d-flex justify-content-center gap-2">
+                <button type="submit" class="btn btn-primary">Upload Note</button>
+                <a href="{{ url_for('admin_notes') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const cycles = {{ cycles | tojson }}.map(c => ({...c, id: parseInt(c.id)}));
+
+    const schemeSelect = document.getElementById('schemeSelect');
+    const semesterSelect = document.getElementById('semesterSelect');
+    const cycleSelect = document.getElementById('cycleSelect');
+    const branchSelect = document.getElementById('branchSelect');
+    const subjectSelect = document.getElementById('subjectSelect');
+    const categorySelect = document.getElementById('categorySelect');
+    const cycleField = document.getElementById('cycleField');
+    const branchField = document.getElementById('branchField');
+
+    function resetSelect(select, label, disabled = true) {
+        select.innerHTML = `<option value="">${label}</option>`;
+        select.disabled = disabled;
+    }
+
+    async function fetchJson(url) {
+        const response = await fetch(url, {headers: {'Accept': 'application/json'}});
+        if (!response.ok) {
+            throw new Error(`Request failed: ${response.status}`);
+        }
+        return response.json();
+    }
+
+    schemeSelect.addEventListener('change', async function() {
+        const schemeId = parseInt(this.value);
+        resetSelect(semesterSelect, 'Select Semester');
+        resetSelect(branchSelect, 'Select Branch');
+        resetSelect(subjectSelect, 'Select Subject');
+        cycleSelect.disabled = true;
+        cycleSelect.value = '';
+        if (schemeId) {
+            resetSelect(semesterSelect, 'Loading Semesters...', true);
+            try {
+                const semesters = await fetchJson(`/admin/api/semesters?scheme_id=${schemeId}`);
+                resetSelect(semesterSelect, 'Select Semester', semesters.length === 0);
+                for (const sem of semesters) {
+                    const option = document.createElement('option');
+                    option.value = sem.id;
+                    option.dataset.semesterNumber = sem.semester_number;
+                    option.textContent = sem.name;
+                    semesterSelect.appendChild(option);
+                }
+            } catch (error) {
+                resetSelect(semesterSelect, 'Unable to load semesters', true);
+                console.error(error);
+            }
+        }
+    });
+
+    async function loadBranches() {
+        const schemeId = parseInt(schemeSelect.value) || null;
+        const semesterId = parseInt(semesterSelect.value) || null;
+        resetSelect(branchSelect, 'Select Branch');
+        resetSelect(subjectSelect, 'Select Subject');
+        if (!schemeId || !semesterId) {
+            return;
+        }
+
+        resetSelect(branchSelect, 'Loading Branches...', true);
+        try {
+            const branches = await fetchJson(`/admin/api/branches?scheme_id=${schemeId}&semester_id=${semesterId}`);
+            resetSelect(branchSelect, 'Select Branch', branches.length === 0);
+            for (const branch of branches) {
+                const option = document.createElement('option');
+                option.value = branch.id;
+                option.textContent = `${branch.name} (${branch.code})`;
+                branchSelect.appendChild(option);
+            }
+        } catch (error) {
+            resetSelect(branchSelect, 'Unable to load branches', true);
+            console.error(error);
+        }
+    }
+
+    async function updateSubjects() {
+        const schemeId = parseInt(schemeSelect.value) || null;
+        const semesterId = parseInt(semesterSelect.value) || null;
+        const branchId = parseInt(branchSelect.value) || null;
+
+        resetSelect(subjectSelect, 'Select Subject');
+        if (!schemeId || !semesterId || !branchId) {
+            return;
+        }
+
+        resetSelect(subjectSelect, 'Loading Subjects...', true);
+        try {
+            const subjects = await fetchJson(`/admin/api/subjects?scheme_id=${schemeId}&semester_id=${semesterId}&branch_id=${branchId}`);
+            resetSelect(subjectSelect, 'Select Subject', subjects.length === 0);
+            for (const sub of subjects) {
+                const option = document.createElement('option');
+                option.value = sub.id;
+                option.textContent = `${sub.code} - ${sub.name}`;
+                subjectSelect.appendChild(option);
+            }
+        } catch (error) {
+            resetSelect(subjectSelect, 'Unable to load subjects', true);
+            console.error(error);
+        }
+    }
+
+    semesterSelect.addEventListener('change', async function() {
+        const semesterId = parseInt(this.value);
+        let isFirstYear = false;
+        if (semesterId) {
+            const selectedOption = this.options[this.selectedIndex];
+            const semesterNumber = parseInt(selectedOption.dataset.semesterNumber);
+            if (semesterNumber) {
+                isFirstYear = semesterNumber === 1 || semesterNumber === 2;
+            }
+
+            if (isFirstYear) {
+                cycleField.style.display = 'block';
+                cycleSelect.disabled = false;
+                branchField.style.display = 'block';
+                branchSelect.disabled = false;
+            } else {
+                cycleField.style.display = 'none';
+                cycleSelect.disabled = true;
+                cycleSelect.value = '';
+                branchField.style.display = 'block';
+                branchSelect.disabled = false;
+            }
+        } else {
+            cycleSelect.disabled = true;
+            branchSelect.disabled = true;
+            subjectSelect.disabled = true;
+        }
+        await loadBranches();
+    });
+
+    branchSelect.addEventListener('change', updateSubjects);
+});
+</script>
+{% endblock %}

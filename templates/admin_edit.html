@@ -1,0 +1,65 @@
+{% extends 'admin_dashboard.html' %}
+
+{% block admin_content %}
+<div class="glass-card p-4">
+    <h4 class="mb-4"><i class="fas fa-edit"></i> Edit Note</h4>
+    <form action="{{ url_for('admin_edit_note', note_id=note.id) }}" method="POST" class="needs-validation" novalidate>
+        <div class="row g-3">
+            <div class="col-md-12">
+                <label class="form-label">Note Title</label>
+                <input type="text" name="title" class="form-control" value="{{ note.title }}" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Category</label>
+                <select name="resource_type" class="form-select" id="categorySelect" required>
+                    <option value="module1" {% if note.resource_type == 'module1' %}selected{% endif %}>Module 1 Notes</option>
+                    <option value="module2" {% if note.resource_type == 'module2' %}selected{% endif %}>Module 2 Notes</option>
+                    <option value="module3" {% if note.resource_type == 'module3' %}selected{% endif %}>Module 3 Notes</option>
+                    <option value="module4" {% if note.resource_type == 'module4' %}selected{% endif %}>Module 4 Notes</option>
+                    <option value="module5" {% if note.resource_type == 'module5' %}selected{% endif %}>Module 5 Notes</option>
+                    <option value="important_questions" {% if note.resource_type == 'important_questions' %}selected{% endif %}>Important Questions</option>
+                    <option value="lab_manual" {% if note.resource_type == 'lab_manual' %}selected{% endif %}>Lab Manual</option>
+                    <option value="pyq" {% if note.resource_type == 'pyq' %}selected{% endif %}>Question Paper</option>
+                    <option value="solutions" {% if note.resource_type == 'solutions' %}selected{% endif %}>Question Paper Solution</option>
+                    <option value="passing_package" {% if note.resource_type == 'passing_package' %}selected{% endif %}>Passing Package</option>
+                </select>
+            </div>
+            <div class="col-md-6" id="moduleField">
+                <label class="form-label">Module</label>
+                <select name="module_number" class="form-select">
+                    <option value="">Select Module</option>
+                    <option value="1" {% if note.module_number == 1 %}selected{% endif %}>Module 1</option>
+                    <option value="2" {% if note.module_number == 2 %}selected{% endif %}>Module 2</option>
+                    <option value="3" {% if note.module_number == 3 %}selected{% endif %}>Module 3</option>
+                    <option value="4" {% if note.module_number == 4 %}selected{% endif %}>Module 4</option>
+                    <option value="5" {% if note.module_number == 5 %}selected{% endif %}>Module 5</option>
+                </select>
+            </div>
+            <div class="col-md-12 text-center mt-3">
+                <a href="{{ url_for('admin_notes') }}" class="btn btn-outline-secondary me-2">Cancel</a>
+                <button type="submit" class="btn btn-success">Save Changes</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categorySelect = document.getElementById('categorySelect');
+    const moduleField = document.getElementById('moduleField');
+
+    function updateModuleField() {
+        if (categorySelect.value.startsWith('module')) {
+            moduleField.style.display = 'block';
+        } else {
+            moduleField.style.display = 'none';
+        }
+    }
+
+    // Initialize
+    updateModuleField();
+
+    categorySelect.addEventListener('change', updateModuleField);
+});
+</script>
+{% endblock %}

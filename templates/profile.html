@@ -1,0 +1,219 @@
+{% extends 'layout.html' %}
+
+{% block title %}Profile - StudyNova{% endblock %}
+
+{% block content %}
+<section class="page-header py-5 bg-primary text-white text-center" style="background: linear-gradient(135deg, #4361ee 0%, #7209b7 100%);">
+    <div class="container">
+        <h1 data-aos="fade-down">
+            <i class="fas fa-user-circle me-2"></i>
+            {% if editing %}Edit Profile{% else %}My Profile{% endif %}
+        </h1>
+    </div>
+</section>
+
+<section class="profile-section py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10" data-aos="fade-up">
+                <div class="glass-card p-5">
+                    <div class="row">
+                        <div class="col-lg-4 mb-5 mb-lg-0">
+                            <div class="text-center">
+                                <div class="position-relative d-inline-block mb-4">
+                                    <div class="rounded-circle overflow-hidden border-4 border-primary" style="width:180px; height:180px;">
+                                        {% if user.profile_photo %}
+                                            {% if 'http' in user.profile_photo %}
+                                                <img src="{{ user.profile_photo }}" class="w-100 h-100 object-fit-cover" alt="Profile">
+                                            {% else %}
+                                                <img src="{{ url_for('static', filename='uploads/' ~ user.profile_photo) }}" class="w-100 h-100 object-fit-cover" alt="Profile">
+                                            {% endif %}
+                                        {% else %}
+                                            <div class="bg-gradient-to-r w-100 h-100 d-flex align-items-center justify-content-center text-white" style="font-size:4rem;">
+                                                <i class="fas fa-user-circle"></i>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if editing %}
+                                        <div class="mt-3">
+                                            <form method="POST" action="{{ url_for('profile_save') }}" enctype="multipart/form-data">
+                                                <input type="hidden" name="full_name" value="{{ user.username }}">
+                                                <input type="hidden" name="phone" value="{{ user.phone }}">
+                                                <input type="hidden" name="college" value="{{ user.college }}">
+                                                <input type="hidden" name="branch" value="{{ user.branch }}">
+                                                <input type="hidden" name="semester" value="{{ user.semester }}">
+                                                <input type="hidden" name="scheme" value="{{ user.scheme }}">
+                                                <input type="hidden" name="bio" value="{{ user.bio }}">
+                                                
+                                                <label class="btn btn-outline-primary btn-sm mb-2 w-100">
+                                                    <i class="fas fa-camera me-2"></i>Upload Photo
+                                                    <input type="file" name="profile_photo" class="d-none" accept="image/*">
+                                                </label>
+                                                
+                                                {% if user.profile_photo %}
+                                                    <button type="submit" formmethod="POST" formaction="{{ url_for('profile_remove_photo') }}" class="btn btn-outline-danger btn-sm w-100">
+                                                        <i class="fas fa-trash me-2"></i>Remove Photo
+                                                    </button>
+                                                {% endif %}
+                                            </form>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if not editing %}
+                                    <h4 class="mb-2">{{ user.username }}</h4>
+                                    <p class="text-muted mb-3">{{ user.email }}</p>
+                                    <span class="badge bg-{% if user.role == 'admin' %}success{% else %}primary{% endif %} mb-3">
+                                        {% if user.role == 'admin' %}
+                                            <i class="fas fa-crown me-1"></i> Admin
+                                        {% else %}
+                                            <i class="fas fa-user me-1"></i> Student
+                                        {% endif %}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-8">
+                            {% if editing %}
+                                <form method="POST" action="{{ url_for('profile_save') }}" enctype="multipart/form-data">
+                            {% endif %}
+                            
+                            <h5 class="mb-4">
+                                <i class="fas fa-user-edit me-2 text-primary"></i>
+                                Personal Information
+                            </h5>
+                            
+                            <div class="row g-4 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                                    {% if editing %}
+                                        <input type="text" name="full_name" class="form-control" value="{{ user.username or '' }}" required>
+                                    {% else %}
+                                        <div class="form-control-plaintext">{{ user.username or 'Not provided' }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Email</label>
+                                    {% if editing %}
+                                        <input type="email" class="form-control" value="{{ user.email or '' }}" readonly>
+                                    {% else %}
+                                        <div class="form-control-plaintext">{{ user.email or 'Not provided' }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row g-4 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label">Phone Number</label>
+                                    {% if editing %}
+                                        <input type="tel" name="phone" class="form-control" value="{{ user.phone or '' }}">
+                                    {% else %}
+                                        <div class="form-control-plaintext">{{ user.phone or 'Not provided' }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">College Name</label>
+                                    {% if editing %}
+                                        <input type="text" name="college" class="form-control" value="{{ user.college or '' }}">
+                                    {% else %}
+                                        <div class="form-control-plaintext">{{ user.college or 'Not provided' }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <h5 class="mb-4 mt-5">
+                                <i class="fas fa-graduation-cap me-2 text-primary"></i>
+                                Academic Information
+                            </h5>
+                            
+                            <div class="row g-4 mb-4">
+                                <div class="col-md-4">
+                                    <label class="form-label">Scheme</label>
+                                    {% if editing %}
+                                        <select name="scheme" class="form-select">
+                                            <option value="">Select Scheme</option>
+                                            {% for scheme in schemes %}
+                                                <option value="{{ scheme.name }}" {% if user.scheme == scheme.name %}selected{% endif %}>{{ scheme.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    {% else %}
+                                        <div class="form-control-plaintext">{{ user.scheme or 'Not provided' }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Semester</label>
+                                    {% if editing %}
+                                        <select name="semester" class="form-select">
+                                            <option value="">Select Semester</option>
+                                            {% for i in range(1, 8) %}
+                                                <option value="{{ i }} Semester" {% if user.semester == i ~ ' Semester' %}selected{% endif %}>{{ i }} Semester</option>
+                                            {% endfor %}
+                                        </select>
+                                    {% else %}
+                                        <div class="form-control-plaintext">{{ user.semester or 'Not provided' }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Branch</label>
+                                    {% if editing %}
+                                        <select name="branch" class="form-select">
+                                            <option value="">Select Branch</option>
+                                            {% for branch in branches %}
+                                                <option value="{{ branch.name }}" {% if user.branch == branch.name %}selected{% endif %}>{{ branch.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    {% else %}
+                                        <div class="form-control-plaintext">{{ user.branch or 'Not provided' }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label">About Me</label>
+                                {% if editing %}
+                                    <textarea name="bio" class="form-control" rows="3">{{ user.bio or '' }}</textarea>
+                                {% else %}
+                                    <div class="form-control-plaintext">{{ user.bio or 'Not provided' }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mt-5 d-flex gap-3 justify-content-center">
+                                {% if editing %}
+                                    <button type="submit" class="btn btn-primary px-5">
+                                        <i class="fas fa-save me-2"></i>Save Changes
+                                    </button>
+                                    <a href="{{ url_for('profile') }}" class="btn btn-outline-secondary px-5">
+                                        <i class="fas fa-times me-2"></i>Cancel
+                                    </a>
+                                {% else %}
+                                    <a href="{{ url_for('profile_edit') }}" class="btn btn-primary px-5">
+                                        <i class="fas fa-edit me-2"></i>Edit Profile
+                                    </a>
+                                    <a href="{{ url_for('profile_change_password') }}" class="btn btn-outline-primary px-5">
+                                        <i class="fas fa-key me-2"></i>Change Password
+                                    </a>
+                                    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary px-5">
+                                        <i class="fas fa-arrow-left me-2"></i>Dashboard
+                                    </a>
+                                {% endif %}
+                            </div>
+                            
+                            {% if editing %}
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .bg-gradient-to-r {
+        background: linear-gradient(135deg, #4361ee 0%, #7209b7 100%);
+    }
+</style>
+{% endblock %}

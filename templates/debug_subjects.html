@@ -1,0 +1,88 @@
+{% extends 'admin_dashboard.html' %}
+
+{% block content %}
+<div class="container my-4">
+    <h2 class="mb-4">🔎 Debug - Subjects Retrieval</h2>
+    
+    <div class="card glass-card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Filter Subjects</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Scheme</label>
+                    <input type="number" name="scheme_id" class="form-control form-control-sm" value="{{ scheme_id or '' }}" placeholder="Scheme ID">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Semester</label>
+                    <input type="number" name="semester_id" class="form-control form-control-sm" value="{{ semester_id or '' }}" placeholder="Semester ID">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Branch</label>
+                    <input type="number" name="branch_id" class="form-control form-control-sm" value="{{ branch_id or '' }}" placeholder="Branch ID">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <h5 class="mb-3">
+        📊 Total Subjects: <span class="badge bg-info">{{ all_subjects|length }}</span>
+        | Filtered: <span class="badge bg-warning">{{ filtered_subjects|length }}</span>
+    </h5>
+
+    <div class="card glass-card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>scheme_id</th>
+                            <th>semester_id</th>
+                            <th>branch_id</th>
+                            <th>Scheme</th>
+                            <th>Semester</th>
+                            <th>Branch</th>
+                            <th>Common</th>
+                            <th>Stream</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for subject in filtered_subjects %}
+                        <tr {% if subject in all_subjects %}class="table-info"{% endif %}>
+                            <td>{{ subject.id }}</td>
+                            <td>{{ subject.code }}</td>
+                            <td>{{ subject.name }}</td>
+                            <td><code>{{ subject.scheme_id }}</code></td>
+                            <td><code>{{ subject.semester_id }}</code></td>
+                            <td><code>{{ subject.branch_id }}</code></td>
+                            <td>{{ subject.scheme_name or '-' }}</td>
+                            <td>{{ subject.semester_name or '-' }}</td>
+                            <td>{{ subject.branch_name or '-' }}</td>
+                            <td>{{ subject.is_common or 0 }}</td>
+                            <td>{{ subject.stream or '-' }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="11" class="text-center text-muted">Subjects are being prepared for this filter</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-4 mt-4">
+        <a href="{{ url_for('debug_data_summary') }}" class="btn btn-secondary">← Back to Summary</a>
+        <a href="{{ url_for('debug_test_flow') }}" class="btn btn-primary">Test Flow →</a>
+    </div>
+</div>
+{% endblock %}

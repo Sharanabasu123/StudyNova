@@ -1,0 +1,139 @@
+{% extends 'admin_dashboard.html' %}
+
+{% block content %}
+<div class="container my-4">
+    <h2 class="mb-4 text-center">Add New Subject</h2>
+    <div class="glass-card p-4">
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label">Scheme *</label>
+                <select name="scheme_id" class="form-select" id="schemeSelect" required>
+                    <option value="">Select Scheme</option>
+                    {% for scheme in schemes %}
+                        <option value="{{ scheme.id }}">{{ scheme.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Semester *</label>
+                <select name="semester_id" class="form-select" id="semesterSelect" required disabled>
+                    <option value="">Select Semester</option>
+                </select>
+            </div>
+            <div class="mb-3" id="cycleField">
+                <label class="form-label">Cycle</label>
+                <select name="cycle_id" class="form-select" id="cycleSelect" disabled>
+                    <option value="">Select Cycle</option>
+                    {% for cycle in cycles %}
+                        <option value="{{ cycle.id }}">{{ cycle.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3" id="branchField">
+                <label class="form-label">Branch</label>
+                <select name="branch_id" class="form-select" id="branchSelect" disabled>
+                    <option value="">Select Branch</option>
+                    {% for branch in branches %}
+                        <option value="{{ branch.id }}">{{ branch.name }} ({{ branch.code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Stream</label>
+                <select name="stream" class="form-select">
+                    <option value="">No Stream</option>
+                    <option value="civil">Civil</option>
+                    <option value="mechanical">Mechanical</option>
+                    <option value="electrical">Electrical</option>
+                    <option value="electronics">Electronics</option>
+                    <option value="computer_science">Computer Science</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="is_common" value="1" id="isCommon">
+                    <label class="form-check-label" for="isCommon">Is Common Subject (visible to all relevant branches)</label>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Subject Name *</label>
+                <input type="text" name="subject_name" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Subject Code *</label>
+                <input type="text" name="subject_code" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Credits</label>
+                <input type="number" name="credits" class="form-control" value="4">
+            </div>
+            <div class="d-flex justify-content-center gap-2">
+                <button type="submit" class="btn btn-primary">Add Subject</button>
+                <a href="{{ url_for('admin_notes') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const schemes = {{ schemes | tojson }};
+    const semesters = {{ semesters | tojson }};
+    const branches = {{ branches | tojson }};
+    const cycles = {{ cycles | tojson }};
+
+    const schemeSelect = document.getElementById('schemeSelect');
+    const semesterSelect = document.getElementById('semesterSelect');
+    const cycleSelect = document.getElementById('cycleSelect');
+    const branchSelect = document.getElementById('branchSelect');
+    const cycleField = document.getElementById('cycleField');
+    const branchField = document.getElementById('branchField');
+
+    schemeSelect.addEventListener('change', function() {
+        const schemeId = parseInt(this.value);
+        semesterSelect.innerHTML = '<option value="">Select Semester</option>';
+        if (schemeId) {
+            semesterSelect.disabled = false;
+            const filteredSemesters = semesters.filter(s => s.scheme_id === schemeId);
+            for (const sem of filteredSemesters) {
+                const option = document.createElement('option');
+                option.value = sem.id;
+                option.textContent = sem.name;
+                semesterSelect.appendChild(option);
+            }
+        } else {
+            semesterSelect.disabled = true;
+            cycleSelect.disabled = true;
+            branchSelect.disabled = true;
+        }
+    });
+
+    semesterSelect.addEventListener('change', function() {
+        const semesterId = parseInt(this.value);
+        let isFirstYear = false;
+        if (semesterId) {
+            const semester = semesters.find(s => s.id === semesterId);
+            if (semester) {
+                isFirstYear = semester.semester_number === 1 || semester.semester_number === 2;
+            }
+
+            if (isFirstYear) {
+                cycleField.style.display = 'block';
+                cycleSelect.disabled = false;
+                branchField.style.display = 'block';
+                branchSelect.disabled = false;
+            } else {
+                cycleField.style.display = 'none';
+                cycleSelect.disabled = true;
+                cycleSelect.value = '';
+                branchField.style.display = 'block';
+                branchSelect.disabled = false;
+            }
+        } else {
+            cycleSelect.disabled = true;
+            branchSelect.disabled = true;
+        }
+    });
+});
+</script>
+{% endblock %}

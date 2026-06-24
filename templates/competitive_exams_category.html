@@ -1,0 +1,60 @@
+{% extends 'layout.html' %}
+
+{% block title %}{{ category.name }} - StudyNova{% endblock %}
+
+{% block content %}
+<section class="page-header py-5 bg-primary text-white text-center" style="background: linear-gradient(135deg, #4361ee 0%, #7209b7 100%);">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb justify-content-center text-white opacity-75">
+                <li class="breadcrumb-item"><a href="{{ url_for('competitive_exams_home') }}" class="text-white">Competitive Exams</a></li>
+                <li class="breadcrumb-item active text-white" aria-current="page">{{ category.name }}</li>
+            </ol>
+        </nav>
+        <h1 data-aos="fade-down">{{ category.name }}</h1>
+        {% if category.description %}
+        <p class="lead" data-aos="fade-up">{{ category.description }}</p>
+        {% endif %}
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        {% if session.get('user_role') == 'admin' %}
+        <div class="mb-4 text-end">
+            <a href="{{ url_for('admin_add_exam_topic', category_id=category.id) }}" class="btn btn-success"><i class="fas fa-plus"></i> Add Topic</a>
+        </div>
+        {% endif %}
+        {% if topics %}
+        <div class="row g-4">
+            {% for topic in topics %}
+            <div class="col-md-4">
+                <div class="glass-card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ topic.name }}</h5>
+                        {% if topic.description %}
+                        <p class="card-text text-muted small">{{ topic.description }}</p>
+                        {% endif %}
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('competitive_exams_topic', topic_id=topic.id) }}" class="btn btn-primary">View Resources</a>
+                            {% if session.get('user_role') == 'admin' %}
+                            <a href="{{ url_for('admin_add_exam_resource', topic_id=topic.id) }}" class="btn btn-outline-primary"><i class="fas fa-upload"></i></a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-folder-open fa-4x text-muted mb-3"></i>
+            <h4>No topics yet</h4>
+            {% if session.get('user_role') == 'admin' %}
+            <p class="text-muted">Add topics to get started!</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

@@ -3,3 +3,4 @@ Flask>=2.3.0
 Werkzeug>=3.0.0
 mysql-connector-python>=8.0.0
 gunicorn
+cloudinary>=1.36.0

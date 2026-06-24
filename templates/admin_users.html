@@ -1,0 +1,42 @@
+{% extends 'admin_dashboard.html' %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4><i class="fas fa-users"></i> Users</h4>
+</div>
+
+<div class="glass-card p-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-primary">
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Scheme</th>
+                    <th>Semester</th>
+                    <th>Branch</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td><span class="badge bg-{{ 'success' if user.role == 'admin' else 'primary' }}">{{ user.role }}</span></td>
+                    <td>{{ user.scheme or '-' }}</td>
+                    <td>{{ user.semester or '-' }}</td>
+                    <td>{{ user.branch or '-' }}</td>
+                    <td>{{ 'Active' if user.is_active else 'Inactive' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted">No users found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

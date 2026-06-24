@@ -1,0 +1,61 @@
+{% extends 'admin_dashboard.html' %}
+
+{% block admin_content %}
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="glass-card p-4 h-100">
+            <h4 class="mb-4"><i class="fas fa-database"></i> Storage Management</h4>
+            <div class="mb-3">
+                <p><strong>Total Notes:</strong> {{ stats.total_notes }}</p>
+                <p><strong>Total Downloads:</strong> {{ stats.total_downloads }}</p>
+            </div>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> Note: Files are stored in Cloudinary for persistence.
+            </div>
+            <hr>
+            <h5 class="mb-3">Cleanup Options</h5>
+            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteOldModal">
+                Delete Old Files (Older than 1 year)
+            </button>
+
+            <div class="modal fade" id="deleteOldModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Delete Old Files</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            This will delete all notes uploaded more than one year ago. Are you sure?
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <form action="{{ url_for('admin_delete_old') }}" method="POST" style="display: inline;">
+                                <button type="submit" class="btn btn-danger">Delete Old Files</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="glass-card p-4 h-100">
+            <h4 class="mb-4"><i class="fas fa-save"></i> Database Backup & Restore</h4>
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('admin_download_backup') }}" class="btn btn-success">
+                    <i class="fas fa-download"></i> Download Database Backup
+                </a>
+                <form action="{{ url_for('admin_restore_backup') }}" method="POST" enctype="multipart/form-data">
+                    <label class="form-label">Restore from Backup</label>
+                    <input type="file" name="backup_file" class="form-control mb-2" accept=".db,.sql" required>
+                    <button type="submit" class="btn btn-warning w-100">
+                        <i class="fas fa-upload"></i> Restore Backup
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

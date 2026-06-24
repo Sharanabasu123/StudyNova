@@ -1,0 +1,32 @@
+{% extends 'admin_dashboard.html' %}
+
+{% block title %}Add Resource - Admin - StudyNova{% endblock %}
+
+{% block admin_content %}
+<h2 class="mb-4">Add Resource to {{ chapter.name }}</h2>
+<form method="POST" enctype="multipart/form-data" class="glass-card p-4">
+    <div class="mb-3">
+        <label for="title" class="form-label">Title</label>
+        <input type="text" class="form-control" id="title" name="title" required>
+    </div>
+    <div class="mb-3">
+        <label for="description" class="form-label">Description</label>
+        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+    </div>
+    <div class="mb-3">
+        <label for="resource_type" class="form-label">Resource Type</label>
+        <select class="form-select" id="resource_type" name="resource_type" required>
+            <option value="Chapter Notes">Chapter Notes</option>
+            <option value="Question Banks">Question Banks</option>
+            <option value="Important Questions">Important Questions</option>
+            <option value="Competitive Exam Notes">Competitive Exam Notes</option>
+        </select>
+    </div>
+    <div class="mb-3">
+        <label for="file" class="form-label">File</label>
+        <input type="file" class="form-control" id="file" name="file" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Add Resource</button>
+    <a href="{{ url_for('school_notes_chapter', chapter_id=chapter.id) }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+</form>
+{% endblock %}

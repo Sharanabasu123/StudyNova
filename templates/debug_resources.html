@@ -1,0 +1,89 @@
+{% extends 'admin_dashboard.html' %}
+
+{% block content %}
+<div class="container my-4">
+    <h2 class="mb-4">📦 Debug - Resources Retrieval</h2>
+    
+    <div class="card glass-card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Filter Resources</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Subject ID</label>
+                    <input type="number" name="subject_id" class="form-control form-control-sm" value="{{ subject_id or '' }}" placeholder="Subject ID">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Show</label>
+                    <select name="approved_only" class="form-select form-select-sm">
+                        <option value="yes" {% if approved_only %}selected{% endif %}>Approved Only</option>
+                        <option value="no" {% if not approved_only %}selected{% endif %}>All Resources</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <h5 class="mb-3">
+        📊 Total: <span class="badge bg-info">{{ all_resources|length }}</span>
+        | Filtered: <span class="badge bg-warning">{{ filtered_resources|length }}</span>
+    </h5>
+
+    <div class="card glass-card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Subject</th>
+                            <th>subject_id</th>
+                            <th>Type</th>
+                            <th>Approved</th>
+                            <th>Uploaded By</th>
+                            <th>Date</th>
+                            <th>Views</th>
+                            <th>Downloads</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for resource in filtered_resources %}
+                        <tr {% if resource.is_approved %}class="table-success"{% else %}class="table-warning"{% endif %}>
+                            <td>{{ resource.id }}</td>
+                            <td>{{ resource.title[:40] }}</td>
+                            <td>{{ resource.subject_name or '(None)' }}</td>
+                            <td><code>{{ resource.subject_id }}</code></td>
+                            <td><span class="badge bg-secondary">{{ resource.resource_type }}</span></td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if resource.is_approved else 'warning' }}">
+                                    {{ 'Yes' if resource.is_approved else 'No' }}
+                                </span>
+                            </td>
+                            <td>{{ resource.uploader_name or '-' }}</td>
+                            <td>{{ resource.upload_date|string|first(10) }}</td>
+                            <td>{{ resource.view_count }}</td>
+                            <td>{{ resource.download_count }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center text-muted">No resources found matching filter</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-4 mt-4">
+        <a href="{{ url_for('debug_data_summary') }}" class="btn btn-secondary">← Back to Summary</a>
+        <a href="{{ url_for('debug_test_flow') }}" class="btn btn-primary">Test Flow →</a>
+    </div>
+</div>
+{% endblock %}

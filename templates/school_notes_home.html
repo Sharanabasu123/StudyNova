@@ -1,0 +1,54 @@
+{% extends 'layout.html' %}
+
+{% block title %}School Notes - StudyNova{% endblock %}
+
+{% block content %}
+<section class="page-header py-5 bg-primary text-white text-center" style="background: linear-gradient(135deg, #4361ee 0%, #7209b7 100%);">
+    <div class="container">
+        <h1 data-aos="fade-down">School Notes</h1>
+        <p class="lead" data-aos="fade-up">Study materials for classes 6th to 10th</p>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        <!-- Search -->
+        <div class="mb-5" data-aos="fade-up">
+            <form action="{{ url_for('school_notes_search') }}" method="GET" class="row g-3">
+                <div class="col-md-5">
+                    <input type="text" name="q" class="form-control" placeholder="Search notes, chapters..." value="{{ query if query else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <select name="class_id" class="form-select">
+                        <option value="">All Classes</option>
+                        {% for cls in classes %}
+                        <option value="{{ cls.id }}">{{ cls.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Search</button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Classes Grid -->
+        <div class="row g-4">
+            {% for cls in classes %}
+            <div class="col-md-4" data-aos="fade-up">
+                <div class="glass-card h-100">
+                    <div class="card-body text-center">
+                        <div class="display-1 text-primary mb-3"><i class="fas fa-graduation-cap"></i></div>
+                        <h5 class="card-title">{{ cls.name }}</h5>
+                        {% if cls.description %}
+                        <p class="text-muted small">{{ cls.description }}</p>
+                        {% endif %}
+                        <a href="{{ url_for('school_notes_class', class_id=cls.id) }}" class="btn btn-primary">View Subjects</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}
