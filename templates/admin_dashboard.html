@@ -24,6 +24,12 @@
                         <a class="nav-link {% if request.endpoint == 'admin_notes' or request.endpoint == 'admin_upload_note' or request.endpoint == 'admin_edit_note' or request.endpoint == 'admin_replace_note' or request.endpoint == 'admin_delete_note' %}active{% endif %}" href="{{ url_for('admin_notes') }}">
                             <i class="fas fa-book"></i> Notes Management
                         </a>
+                        <a class="nav-link {% if request.endpoint == 'admin_user_uploaded_notes' %}active{% endif %}" href="{{ url_for('admin_user_uploaded_notes') }}">
+                            <i class="fas fa-cloud-upload-alt"></i> User Uploaded Notes
+                        </a>
+                        <a class="nav-link {% if request.endpoint == 'admin_team' or request.endpoint == 'admin_add_team_member' or request.endpoint == 'admin_edit_team_member' %}active{% endif %}" href="{{ url_for('admin_team') }}">
+                            <i class="fas fa-users"></i> Team Management
+                        </a>
                         <a class="nav-link {% if request.endpoint in ['admin_academic', 'admin_add_scheme', 'admin_add_semester', 'admin_add_branch', 'admin_add_subject'] %}active{% endif %}" href="{{ url_for('admin_academic') }}">
                             <i class="fas fa-sitemap"></i> Academic Setup
                         </a>

@@ -171,6 +171,24 @@ def init_db():
             FOREIGN KEY (uploaded_by) REFERENCES users(id)
         )
     ''')
+
+    # Team members table for About/Founders management
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS team_members (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            title TEXT,
+            bio TEXT,
+            profile_url TEXT,
+            profile_public_id TEXT,
+            linkedin_url TEXT,
+            github_url TEXT,
+            is_founder INTEGER DEFAULT 0,
+            is_active INTEGER DEFAULT 1,
+            sort_order INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
     
     # Check if schemes exist, if not, create them
     cursor.execute("SELECT COUNT(*) FROM schemes")

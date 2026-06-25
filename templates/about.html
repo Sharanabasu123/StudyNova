@@ -42,20 +42,30 @@
             <div class="row align-items-center">
                 <div class="col-lg-4 text-center mb-4 mb-lg-0">
                     <div class="dev-img-wrapper">
-                        <img src="{{ url_for('static', filename='images/Blaser photo.jpeg') }}" alt="Sharanabasu Police Patil" class="rounded-circle shadow-lg border border-5 border-white img-fluid" style="width: 250px; height: 250px; object-fit: cover;">
+                        {% if developer and developer.profile_url %}
+                        <img src="{{ developer.profile_url }}" alt="{{ developer.name }}" class="rounded-circle shadow-lg border border-5 border-white img-fluid" style="width: 250px; height: 250px; object-fit: cover;">
+                        {% else %}
+                        <img src="{{ url_for('static', filename='images/Blaser photo.jpeg') }}" alt="Sharanabasu Malasidda Police Patil" class="rounded-circle shadow-lg border border-5 border-white img-fluid" style="width: 250px; height: 250px; object-fit: cover;">
+                        {% endif %}
                     </div>
                 </div>
                 <div class="col-lg-8">
                     <h2 class="mb-3">Meet the Developer</h2>
-                    <h4>Sharanabasu Police Patil</h4>
-                    <p class="text-primary font-weight-bold">B.E CSE Student - RLJIT</p>
-                    <p>I am a passionate Computer Science student dedicated to building tools that solve real-world problems. StudyNova is my contribution to the student community, aiming to bridge the gap in access to quality study materials.</p>
+                    <h4>{{ developer.name if developer else 'Sharanabasu Malasidda Police Patil' }}</h4>
+                    <p class="text-primary font-weight-bold">{{ developer.title if developer and developer.title else 'Founder & CEO' }}</p>
+                    <p>{{ developer.bio if developer and developer.bio else 'I am a passionate Computer Science student dedicated to building tools that solve real-world problems. StudyNova is my contribution to the student community, aiming to bridge the gap in access to quality study materials.' }}</p>
                     <div class="dev-social mt-4 mb-4">
-                        <a href="https://github.com/Sharanabasu123" class="btn btn-dark me-2 mb-2" target="_blank" rel="noopener noreferrer">
-                            <i class="fab fa-github me-2"></i>GitHub
+                        {% if developer and developer.linkedin_url %}
+                        <a href="{{ developer.linkedin_url }}" class="btn btn-primary me-2 mb-2" target="_blank" rel="noopener noreferrer">
+                            <i class="fab fa-linkedin me-2"></i>LinkedIn
                         </a>
+                        {% else %}
                         <a href="https://www.linkedin.com/in/sharanabasu-police-patil" class="btn btn-primary me-2 mb-2" target="_blank" rel="noopener noreferrer">
                             <i class="fab fa-linkedin me-2"></i>LinkedIn
+                        </a>
+                        {% endif %}
+                        <a href="https://github.com/Sharanabasu123" class="btn btn-dark me-2 mb-2" target="_blank" rel="noopener noreferrer">
+                            <i class="fab fa-github me-2"></i>GitHub
                         </a>
                     </div>
                     <div class="study-nova-social pt-3 border-top">
@@ -73,6 +83,53 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <div class="team-section py-5">
+            <div class="container">
+                <div class="row mb-4">
+                    <div class="col-12 text-center">
+                        <h2 class="section-title">Our Team</h2>
+                        <p class="text-muted">Meet the active members helping StudyNova grow.</p>
+                    </div>
+                </div>
+                {% if team_members %}
+                <div class="row g-4">
+                    {% for member in team_members %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body text-center">
+                                {% if member.profile_url %}
+                                <img src="{{ member.profile_url }}" alt="{{ member.name }}" class="rounded-circle mb-3" style="width: 130px; height: 130px; object-fit: cover;">
+                                {% else %}
+                                <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center mb-3" style="width: 130px; height: 130px;">
+                                    <i class="fas fa-user fa-3x"></i>
+                                </div>
+                                {% endif %}
+                                <h5 class="card-title mb-1">{{ member.name }}</h5>
+                                <p class="text-primary small mb-2">{{ member.title or 'Team Member' }}</p>
+                                <p class="small text-muted">{{ member.bio or 'No bio available yet.' }}</p>
+                                <div class="d-flex justify-content-center gap-2 mt-3">
+                                    {% if member.linkedin_url %}
+                                    <a href="{{ member.linkedin_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
+                                        <i class="fab fa-linkedin me-1"></i>LinkedIn
+                                    </a>
+                                    {% endif %}
+                                    {% if member.github_url %}
+                                    <a href="{{ member.github_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark btn-sm">
+                                        <i class="fab fa-github me-1"></i>GitHub
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-info">No team members are published yet. Check back later for updates.</div>
+                {% endif %}
             </div>
         </div>
     </div>

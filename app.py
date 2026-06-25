@@ -8,6 +8,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import shutil
 import smtplib
+import tempfile
 from uuid import uuid4
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -39,8 +40,9 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload size
-DATABASE = os.path.join(os.path.dirname(__file__), 'studynova.db')
+DATABASE = os.environ.get('SQLITE_DATABASE', os.path.join(os.path.dirname(__file__), 'studynova.db'))
 ALLOWED_UPLOAD_EXTENSIONS = {'pdf', 'ppt', 'pptx', 'doc', 'docx'}
+ALLOWED_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 _database_initialized = False
 
 @app.before_request
@@ -84,9 +86,37 @@ except ImportError:
     mysql = None
     MYSQL_AVAILABLE = False
 
+try:
+    import psycopg2
+    import psycopg2.extras
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    psycopg2 = None
+    psycopg2_extras = None
+    POSTGRES_AVAILABLE = False
+
+POSTGRES_CONFIG = {
+    'host': os.environ.get('POSTGRES_HOST', 'localhost'),
+    'port': int(os.environ.get('POSTGRES_PORT', 5432)),
+    'user': os.environ.get('POSTGRES_USER', 'studynova'),
+    'password': os.environ.get('POSTGRES_PASSWORD', 'studynova'),
+    'database': os.environ.get('POSTGRES_DATABASE', 'studynova'),
+}
+
+USE_POSTGRES = all([
+    os.environ.get('POSTGRES_HOST'),
+    os.environ.get('POSTGRES_USER'),
+    os.environ.get('POSTGRES_PASSWORD'),
+    os.environ.get('POSTGRES_DATABASE'),
+])
+
 
 def mysql_enabled():
     return USE_MYSQL and MYSQL_AVAILABLE
+
+
+def postgres_enabled():
+    return not mysql_enabled() and USE_POSTGRES and POSTGRES_AVAILABLE
 
 
 def get_db_connection():
@@ -99,55 +129,67 @@ def get_db_connection():
             database=MYSQL_CONFIG['database'],
         )
 
-    if os.path.exists(DATABASE):
-        try:
-            conn = sqlite3.connect(DATABASE)
-            conn.row_factory = sqlite3.Row
-            conn.execute('PRAGMA foreign_keys = ON')
-            conn.execute('PRAGMA schema_version')
-            return conn
-        except sqlite3.DatabaseError:
-            try:
-                conn.close()
-            except Exception:
-                pass
-            invalid_path = DATABASE + '.invalid'
-            if os.path.exists(invalid_path):
-                invalid_path = DATABASE + f".invalid_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            print(f"[DEBUG] Invalid SQLite database detected. Renaming {DATABASE} to {invalid_path} and creating a fresh database.")
-            os.replace(DATABASE, invalid_path)
+    if postgres_enabled():
+        return psycopg2.connect(
+            host=POSTGRES_CONFIG['host'],
+            port=POSTGRES_CONFIG['port'],
+            user=POSTGRES_CONFIG['user'],
+            password=POSTGRES_CONFIG['password'],
+            dbname=POSTGRES_CONFIG['database'],
+        )
 
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    conn.execute('PRAGMA foreign_keys = ON')
-    return conn
+    try:
+        conn = sqlite3.connect(DATABASE)
+        conn.row_factory = sqlite3.Row
+        conn.execute('PRAGMA foreign_keys = ON')
+        return conn
+    except sqlite3.DatabaseError:
+        try:
+            conn.close()
+        except Exception:
+            pass
+        invalid_path = DATABASE + '.invalid'
+        if os.path.exists(invalid_path):
+            invalid_path = DATABASE + f".invalid_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        print(f"[DEBUG] Invalid SQLite database detected. Renaming {DATABASE} to {invalid_path} and creating a fresh database.")
+        os.replace(DATABASE, invalid_path)
+        conn = sqlite3.connect(DATABASE)
+        conn.row_factory = sqlite3.Row
+        conn.execute('PRAGMA foreign_keys = ON')
+        return conn
 
 
 def get_placeholder():
-    return '%s' if mysql_enabled() else '?'
+    return '%s' if mysql_enabled() or postgres_enabled() else '?'
+
+
+def get_db_cursor(conn):
+    if mysql_enabled():
+        return conn.cursor(dictionary=True)
+    if postgres_enabled():
+        return conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    return conn.cursor()
 
 
 def execute_query(sql, params=None, fetchone=False, fetchall=False, commit=False):
     params = params or ()
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True) if mysql_enabled() else conn.cursor()
+    cursor = get_db_cursor(conn)
     try:
         cursor.execute(sql, params)
         if commit:
             conn.commit()
         if fetchone:
             row = cursor.fetchone()
-            if mysql_enabled():
+            if mysql_enabled() or postgres_enabled():
                 return row
             else:
-                # Convert sqlite3.Row to dict for consistent access with .get()
                 return dict(row) if row else None
         if fetchall:
             rows = cursor.fetchall()
-            if mysql_enabled():
+            if mysql_enabled() or postgres_enabled():
                 return rows
             else:
-                # Convert all sqlite3.Row to dict
                 return [dict(row) for row in rows]
     finally:
         cursor.close()
@@ -1323,6 +1365,42 @@ def init_db():
             )
         ''')
 
+    # Create team_members table for dynamic About/Founders management
+    if mysql_enabled():
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS team_members (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                name VARCHAR(255) NOT NULL,
+                title VARCHAR(255),
+                bio TEXT,
+                profile_url TEXT,
+                profile_public_id TEXT,
+                linkedin_url TEXT,
+                github_url TEXT,
+                is_founder TINYINT DEFAULT 0,
+                is_active TINYINT DEFAULT 1,
+                sort_order INT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+    else:
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS team_members (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                title TEXT,
+                bio TEXT,
+                profile_url TEXT,
+                profile_public_id TEXT,
+                linkedin_url TEXT,
+                github_url TEXT,
+                is_founder INTEGER DEFAULT 0,
+                is_active INTEGER DEFAULT 1,
+                sort_order INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
     # Create password_reset_tokens table
     if mysql_enabled():
         cursor.execute('''
@@ -1861,6 +1939,240 @@ def get_all_resources():
     return execute_query(query, fetchall=True)
 
 
+def get_status_label(status):
+    if status == 0:
+        return 'Pending'
+    if status == 1:
+        return 'Approved'
+    if status == -1 or status == 2:
+        return 'Rejected'
+    return 'Unknown'
+
+
+def get_status_badge(status):
+    if status == 0:
+        return 'secondary'
+    if status == 1:
+        return 'success'
+    if status == -1 or status == 2:
+        return 'danger'
+    return 'dark'
+
+
+def get_team_members():
+    placeholder = get_placeholder()
+    query = f"SELECT * FROM team_members WHERE is_active = {placeholder} ORDER BY sort_order ASC, created_at DESC"
+    return execute_query(query, (1,), fetchall=True)
+
+
+def get_founders():
+    placeholder = get_placeholder()
+    query = f"SELECT * FROM team_members WHERE is_active = {placeholder} AND is_founder = {placeholder} ORDER BY sort_order ASC, created_at DESC"
+    return execute_query(query, (1, 1), fetchall=True)
+
+
+@app.route('/admin/user-uploaded-notes')
+@admin_required
+def admin_user_uploaded_notes():
+    status = request.args.get('status', '').strip().lower()
+    scheme_id = request.args.get('scheme_id', type=int)
+    semester_id = request.args.get('semester_id', type=int)
+    branch_id = request.args.get('branch_id', type=int)
+    subject_id = request.args.get('subject_id', type=int)
+    student_name = request.args.get('student_name', '').strip()
+    upload_date = request.args.get('upload_date', '').strip()
+    search = request.args.get('search', '').strip()
+
+    status_values = {
+        'pending': 0,
+        'approved': 1,
+        'rejected': -1 if mysql_enabled() else 2
+    }
+    rejected_status = status_values['rejected']
+
+    placeholder = get_placeholder()
+    params = []
+    query = f'''
+        SELECT r.*, u.username as student_name, u.email as student_email,
+               s.name as subject_name, b.name as branch_name,
+               sem.name as semester_name, sch.name as scheme_name
+        FROM resources r
+        LEFT JOIN users u ON r.uploaded_by = u.id
+        LEFT JOIN subjects s ON r.subject_id = s.id
+        LEFT JOIN branches b ON s.branch_id = b.id
+        LEFT JOIN semesters sem ON s.semester_id = sem.id
+        LEFT JOIN schemes sch ON s.scheme_id = sch.id
+        WHERE r.uploaded_by IS NOT NULL
+    '''
+
+    if status and status in status_values:
+        query += f' AND r.is_approved = {placeholder}'
+        params.append(status_values[status])
+
+    if scheme_id:
+        query += f' AND s.scheme_id = {placeholder}'
+        params.append(scheme_id)
+
+    if semester_id:
+        query += f' AND s.semester_id = {placeholder}'
+        params.append(semester_id)
+
+    if branch_id:
+        query += f' AND s.branch_id = {placeholder}'
+        params.append(branch_id)
+
+    if subject_id:
+        query += f' AND r.subject_id = {placeholder}'
+        params.append(subject_id)
+
+    if upload_date:
+        query += f' AND r.upload_date LIKE {placeholder}'
+        params.append(f'%{upload_date}%')
+
+    if student_name:
+        query += f' AND (u.username LIKE {placeholder} OR u.email LIKE {placeholder})'
+        params.extend([f'%{student_name}%', f'%{student_name}%'])
+
+    if search:
+        query += f' AND (u.username LIKE {placeholder} OR u.email LIKE {placeholder} OR r.title LIKE {placeholder} OR r.file_url LIKE {placeholder})'
+        params.extend([f'%{search}%', f'%{search}%', f'%{search}%', f'%{search}%'])
+
+    query += ' ORDER BY r.upload_date DESC'
+    user_uploads = execute_query(query, tuple(params), fetchall=True)
+
+    def safe_get_count(sql, params=()):
+        result = execute_query(sql, params, fetchone=True)
+        return result['count'] if result and 'count' in result else 0
+
+    pending_count = safe_get_count(f"SELECT COUNT(*) as count FROM resources WHERE uploaded_by IS NOT NULL AND is_approved = {placeholder}", (0,))
+    approved_count = safe_get_count(f"SELECT COUNT(*) as count FROM resources WHERE uploaded_by IS NOT NULL AND is_approved = {placeholder}", (1,))
+    rejected_count = safe_get_count(f"SELECT COUNT(*) as count FROM resources WHERE uploaded_by IS NOT NULL AND is_approved = {placeholder}", (rejected_status,))
+    total_count = safe_get_count("SELECT COUNT(*) as count FROM resources WHERE uploaded_by IS NOT NULL")
+
+    schemes = get_schemes()
+    semesters = get_semesters()
+    branches = get_branches()
+    subjects = get_subjects()
+
+    return render_template(
+        'admin_user_uploaded_notes.html',
+        user_uploads=user_uploads,
+        pending_count=pending_count,
+        approved_count=approved_count,
+        rejected_count=rejected_count,
+        total_count=total_count,
+        schemes=schemes,
+        semesters=semesters,
+        branches=branches,
+        subjects=subjects,
+        selected_status=status,
+        selected_scheme_id=scheme_id,
+        selected_semester_id=semester_id,
+        selected_branch_id=branch_id,
+        selected_subject_id=subject_id,
+        selected_student_name=student_name,
+        selected_upload_date=upload_date,
+        selected_search=search,
+        get_status_label=get_status_label,
+        get_status_badge=get_status_badge
+    )
+
+
+@app.route('/admin/team')
+@admin_required
+def admin_team():
+    team_members = execute_query('SELECT * FROM team_members ORDER BY sort_order ASC, created_at DESC', fetchall=True)
+    return render_template('admin_team.html', team_members=team_members)
+
+
+@app.route('/admin/team/add', methods=['GET', 'POST'])
+@admin_required
+def admin_add_team_member():
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        title = request.form.get('title', '').strip()
+        bio = request.form.get('bio', '').strip()
+        linkedin_url = request.form.get('linkedin_url', '').strip()
+        github_url = request.form.get('github_url', '').strip()
+        is_founder = 1 if request.form.get('is_founder') else 0
+        is_active = 1 if request.form.get('is_active') else 0
+        sort_order = request.form.get('sort_order', type=int) or 0
+        profile_url = None
+        profile_public_id = None
+        profile_photo = request.files.get('profile_photo')
+
+        if profile_photo and profile_photo.filename:
+            try:
+                _, profile_url, _, profile_public_id = store_uploaded_file(profile_photo, ['team_members'], allow_images=True)
+            except ValueError as exc:
+                flash(str(exc), 'danger')
+                return redirect(url_for('admin_add_team_member'))
+
+        placeholder = get_placeholder()
+        execute_query(f'''
+            INSERT INTO team_members (name, title, bio, profile_url, profile_public_id, linkedin_url, github_url, is_founder, is_active, sort_order)
+            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+        ''', (name, title, bio, profile_url, profile_public_id, linkedin_url, github_url, is_founder, is_active, sort_order), commit=True)
+        flash('Team member added successfully.', 'success')
+        return redirect(url_for('admin_team'))
+    return render_template('admin_add_team_member.html')
+
+
+@app.route('/admin/team/edit/<int:member_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_edit_team_member(member_id):
+    placeholder = get_placeholder()
+    member = execute_query(f'SELECT * FROM team_members WHERE id = {placeholder}', (member_id,), fetchone=True)
+    if not member:
+        flash('Team member not found.', 'danger')
+        return redirect(url_for('admin_team'))
+
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        title = request.form.get('title', '').strip()
+        bio = request.form.get('bio', '').strip()
+        linkedin_url = request.form.get('linkedin_url', '').strip()
+        github_url = request.form.get('github_url', '').strip()
+        is_founder = 1 if request.form.get('is_founder') else 0
+        is_active = 1 if request.form.get('is_active') else 0
+        sort_order = request.form.get('sort_order', type=int) or 0
+        profile_url = member.get('profile_url')
+        profile_public_id = member.get('profile_public_id')
+        profile_photo = request.files.get('profile_photo')
+
+        if profile_photo and profile_photo.filename:
+            try:
+                _, profile_url, _, new_public_id = store_uploaded_file(profile_photo, ['team_members'], allow_images=True)
+                if profile_public_id:
+                    delete_from_cloudinary(profile_public_id)
+                profile_public_id = new_public_id
+            except ValueError as exc:
+                flash(str(exc), 'danger')
+                return redirect(url_for('admin_edit_team_member', member_id=member_id))
+
+        execute_query(f'''
+            UPDATE team_members
+            SET name = {placeholder}, title = {placeholder}, bio = {placeholder}, profile_url = {placeholder}, profile_public_id = {placeholder}, linkedin_url = {placeholder}, github_url = {placeholder}, is_founder = {placeholder}, is_active = {placeholder}, sort_order = {placeholder}
+            WHERE id = {placeholder}
+        ''', (name, title, bio, profile_url, profile_public_id, linkedin_url, github_url, is_founder, is_active, sort_order, member_id), commit=True)
+        flash('Team member updated successfully.', 'success')
+        return redirect(url_for('admin_team'))
+
+    return render_template('admin_add_team_member.html', member=member)
+
+
+@app.route('/admin/team/delete/<int:member_id>', methods=['POST'])
+@admin_required
+def admin_delete_team_member(member_id):
+    placeholder = get_placeholder()
+    member = execute_query(f'SELECT * FROM team_members WHERE id = {placeholder}', (member_id,), fetchone=True)
+    if member and member.get('profile_public_id'):
+        delete_from_cloudinary(member.get('profile_public_id'))
+    execute_query(f'DELETE FROM team_members WHERE id = {placeholder}', (member_id,), commit=True)
+    flash('Team member removed successfully.', 'success')
+    return redirect(url_for('admin_team'))
+
+
 def get_stats():
     placeholder = get_placeholder()
 
@@ -2252,15 +2564,50 @@ def get_most_viewed_subjects(limit=5):
     return execute_query(query, (limit,), fetchall=True)
 
 
+def cloudinary_configured():
+    return CLOUDINARY_AVAILABLE and os.environ.get('CLOUDINARY_CLOUD_NAME') and os.environ.get('CLOUDINARY_API_KEY') and os.environ.get('CLOUDINARY_API_SECRET')
+
+
 def upload_to_cloudinary(file_path):
-    if not CLOUDINARY_AVAILABLE:
-        return None, None
+    if not cloudinary_configured():
+        raise RuntimeError('Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.')
     try:
         upload_result = cloudinary.uploader.upload(file_path, resource_type="auto")
         return upload_result['secure_url'], upload_result['public_id']
     except Exception as e:
-        print(f"Cloudinary upload error: {e}")
-        return None, None
+        raise RuntimeError(f"Cloudinary upload error: {e}")
+
+
+def upload_file_to_cloudinary(file, folder=None):
+    if not file or not file.filename:
+        raise ValueError('Please choose a file to upload.')
+
+    filename = secure_filename(file.filename)
+    _, ext = os.path.splitext(filename)
+    if not ext:
+        ext = '.pdf'
+
+    temp_file = tempfile.NamedTemporaryFile(suffix=ext, delete=False)
+    temp_file.close()
+    file.save(temp_file.name)
+
+    try:
+        upload_options = {'resource_type': 'auto'}
+        if folder:
+            upload_options['folder'] = folder
+        upload_result = cloudinary.uploader.upload(temp_file.name, **upload_options)
+        secure_url = upload_result.get('secure_url')
+        public_id = upload_result.get('public_id')
+        if not secure_url:
+            raise RuntimeError('Cloudinary upload did not return a secure URL.')
+        return secure_url, public_id, ext.lower().lstrip('.')
+    except Exception as e:
+        raise RuntimeError(f"Cloudinary upload error: {e}")
+    finally:
+        try:
+            os.remove(temp_file.name)
+        except OSError:
+            pass
 
 
 def delete_from_cloudinary(public_id):
@@ -2274,6 +2621,10 @@ def delete_from_cloudinary(public_id):
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_UPLOAD_EXTENSIONS
+
+
+def allowed_image_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
 
 
 def save_upload_file(file, path_parts=None):
@@ -2301,6 +2652,46 @@ def save_upload_file(file, path_parts=None):
 
     relative_path = '/'.join(['uploads'] + safe_parts + [filename])
     return file_path, relative_path, ext.lower().lstrip('.')
+
+
+def store_uploaded_file(file, path_parts=None, allow_images=False):
+    """Store a file either in Cloudinary (if configured) or locally as a fallback."""
+    if not file or not file.filename:
+        raise ValueError('Please choose a file to upload.')
+
+    if allow_images:
+        if not allowed_image_file(file.filename):
+            raise ValueError('Only JPG, JPEG, PNG, GIF, and WEBP files are allowed for images.')
+    else:
+        if not allowed_file(file.filename):
+            raise ValueError('Only PDF, PPT, PPTX, DOC, and DOCX files are allowed.')
+
+    filename = secure_filename(file.filename)
+    _, ext = os.path.splitext(filename)
+    ext = ext.lower().lstrip('.')
+
+    if cloudinary_configured():
+        cloud_url, cloud_public_id = upload_file_to_cloudinary(file, folder='/'.join(path_parts or []))
+        return None, cloud_url, ext, cloud_public_id
+
+    safe_parts = []
+    for part in path_parts or []:
+        if not part:
+            continue
+        safe_part = secure_filename(str(part)).strip('._')
+        if safe_part:
+            safe_parts.append(safe_part)
+
+    target_dir = os.path.join(app.config['UPLOAD_FOLDER'], *safe_parts)
+    os.makedirs(target_dir, exist_ok=True)
+
+    stem, ext_with_dot = os.path.splitext(filename)
+    filename = f"{stem[:80]}_{uuid4().hex[:10]}{ext_with_dot.lower()}"
+    file_path = os.path.join(target_dir, filename)
+    file.save(file_path)
+
+    relative_path = '/'.join(['uploads'] + safe_parts + [filename])
+    return file_path, relative_path, ext, None
 
 
 def create_note_record(resource_id, subject_id, title, file_url, file_type):
@@ -2565,21 +2956,10 @@ def profile_save():
     profile_photo_public_id = user.get('profile_photo_public_id')
     if 'profile_photo' in request.files and request.files['profile_photo'].filename:
         file = request.files['profile_photo']
-        filename = secure_filename(file.filename)
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(file_path)
+        file_path, file_url, _, cloud_public_id = store_uploaded_file(file, ['profile_photos'], allow_images=True)
 
-        # Upload to Cloudinary if available
-        cloud_url, cloud_public_id = upload_to_cloudinary(file_path)
-        if cloud_url:
-            profile_photo = cloud_url
-            profile_photo_public_id = cloud_public_id
-            try:
-                os.remove(file_path)
-            except:
-                pass
-        else:
-            profile_photo = filename
+        profile_photo = file_url
+        profile_photo_public_id = cloud_public_id
 
     # Update user in database
     placeholder = get_placeholder()
@@ -2654,7 +3034,14 @@ def profile_change_password():
 
 @app.route('/about')
 def about():
-    return render_template('about.html')
+    team_members = get_team_members()
+    return render_template('about.html', team_members=team_members)
+
+
+@app.route('/founders')
+def founders():
+    founders = get_founders()
+    return render_template('founders.html', founders=founders)
 
 
 @app.route('/contact', methods=['GET', 'POST'])
@@ -2717,10 +3104,6 @@ def syllabus():
 @login_required
 def placement():
     return render_template('placement.html')
-
-@app.route('/founders')
-def founders():
-    return render_template('founders.html')
 
 @app.route('/notes')
 def notes_library():
@@ -2891,17 +3274,10 @@ def upload():
             return redirect(url_for('upload'))
 
         try:
-            file_path, file_url, file_type = save_upload_file(file, ['student_uploads'])
+            file_path, file_url, file_type, cloudinary_public_id = store_uploaded_file(file, ['student_uploads'])
         except ValueError as exc:
             flash(str(exc), 'danger')
             return redirect(url_for('upload'))
-
-        cloudinary_public_id = None
-        cld_url, cld_public_id = upload_to_cloudinary(file_path)
-        if cld_url:
-            file_url = cld_url
-            cloudinary_public_id = cld_public_id
-            os.remove(file_path)
 
         placeholder = get_placeholder()
         subject_record = execute_query("SELECT * FROM subjects LIMIT 1", fetchone=True)
@@ -3243,12 +3619,10 @@ def admin_upload_note():
         ]
 
         try:
-            file_path, file_url, file_type = save_upload_file(file, parts)
+            file_path, file_url, file_type, cloudinary_public_id = store_uploaded_file(file, parts)
         except ValueError as exc:
             flash(str(exc), 'danger')
             return redirect(url_for('admin_upload_note'))
-
-        cloudinary_public_id = None
 
         type_names = {
             'important_questions': 'Important Questions',
@@ -3338,24 +3712,14 @@ def admin_replace_note(note_id):
     if request.method == 'POST':
         file = request.files['file']
         if file and file.filename:
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
+            try:
+                file_path, file_url, file_type, cloudinary_public_id = store_uploaded_file(file, ['admin_notes'])
+            except ValueError as exc:
+                flash(str(exc), 'danger')
+                return redirect(url_for('admin_replace_note', note_id=note_id))
 
-            file_url = filename
-            cloudinary_public_id = None
-            file_type = filename.split('.')[-1] if '.' in filename else 'pdf'
-
-            # Upload to cloudinary if available
-            cld_url, cld_public_id = upload_to_cloudinary(file_path)
-            if cld_url:
-                file_url = cld_url
-                cloudinary_public_id = cld_public_id
-                os.remove(file_path)
-
-                # Delete old file from Cloudinary if exists
-                if note['cloudinary_public_id']:
-                    delete_from_cloudinary(note['cloudinary_public_id'])
+            if note['cloudinary_public_id']:
+                delete_from_cloudinary(note['cloudinary_public_id'])
 
             # Update database
             update_query = f'''
@@ -3777,17 +4141,11 @@ def admin_add_exam_resource(topic_id):
         resource_type = request.form['resource_type']
         file = request.files['file']
         if file and file.filename:
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
-            file_url = filename
-            cloudinary_public_id = None
-            file_type = filename.split('.')[-1] if '.' in filename else 'pdf'
-            cld_url, cld_public_id = upload_to_cloudinary(file_path)
-            if cld_url:
-                file_url = cld_url
-                cloudinary_public_id = cld_public_id
-                os.remove(file_path)
+            try:
+                _, file_url, file_type, cloudinary_public_id = store_uploaded_file(file, ['exam_resources'])
+            except ValueError as exc:
+                flash(str(exc), 'danger')
+                return redirect(url_for('admin_add_exam_resource', topic_id=topic_id))
             user = get_user_by_email(session['user_email'])
             execute_query(f'''INSERT INTO exam_resources (exam_topic_id, title, description, file_url, file_type, resource_type, uploaded_by, cloudinary_public_id)
                             VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})''',
@@ -3804,19 +4162,13 @@ def admin_replace_exam_resource(resource_id):
     if request.method == 'POST':
         file = request.files['file']
         if file and file.filename:
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
-            file_url = filename
-            cloudinary_public_id = None
-            file_type = filename.split('.')[-1] if '.' in filename else 'pdf'
-            cld_url, cld_public_id = upload_to_cloudinary(file_path)
-            if cld_url:
-                file_url = cld_url
-                cloudinary_public_id = cld_public_id
-                os.remove(file_path)
-                if resource['cloudinary_public_id']:
-                    delete_from_cloudinary(resource['cloudinary_public_id'])
+            try:
+                _, file_url, file_type, cloudinary_public_id = store_uploaded_file(file, ['exam_resources'])
+            except ValueError as exc:
+                flash(str(exc), 'danger')
+                return redirect(url_for('admin_replace_exam_resource', resource_id=resource_id))
+            if resource['cloudinary_public_id']:
+                delete_from_cloudinary(resource['cloudinary_public_id'])
             execute_query(f'''UPDATE exam_resources
                             SET file_url = {placeholder}, file_type = {placeholder}, cloudinary_public_id = {placeholder}
                             WHERE id = {placeholder}''', (file_url, file_type, cloudinary_public_id, resource_id), commit=True)
@@ -3892,17 +4244,11 @@ def admin_add_school_resource(chapter_id):
         resource_type = request.form['resource_type']
         file = request.files['file']
         if file and file.filename:
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
-            file_url = filename
-            cloudinary_public_id = None
-            file_type = filename.split('.')[-1] if '.' in filename else 'pdf'
-            cld_url, cld_public_id = upload_to_cloudinary(file_path)
-            if cld_url:
-                file_url = cld_url
-                cloudinary_public_id = cld_public_id
-                os.remove(file_path)
+            try:
+                _, file_url, file_type, cloudinary_public_id = store_uploaded_file(file, ['school_resources'])
+            except ValueError as exc:
+                flash(str(exc), 'danger')
+                return redirect(url_for('admin_add_school_resource', chapter_id=chapter_id))
             user = get_user_by_email(session['user_email'])
             execute_query(f'''INSERT INTO school_resources (school_chapter_id, title, description, file_url, file_type, resource_type, uploaded_by, cloudinary_public_id)
                             VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})''',
@@ -3919,19 +4265,13 @@ def admin_replace_school_resource(resource_id):
     if request.method == 'POST':
         file = request.files['file']
         if file and file.filename:
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
-            file_url = filename
-            cloudinary_public_id = None
-            file_type = filename.split('.')[-1] if '.' in filename else 'pdf'
-            cld_url, cld_public_id = upload_to_cloudinary(file_path)
-            if cld_url:
-                file_url = cld_url
-                cloudinary_public_id = cld_public_id
-                os.remove(file_path)
-                if resource['cloudinary_public_id']:
-                    delete_from_cloudinary(resource['cloudinary_public_id'])
+            try:
+                _, file_url, file_type, cloudinary_public_id = store_uploaded_file(file, ['school_resources'])
+            except ValueError as exc:
+                flash(str(exc), 'danger')
+                return redirect(url_for('admin_replace_school_resource', resource_id=resource_id))
+            if resource['cloudinary_public_id']:
+                delete_from_cloudinary(resource['cloudinary_public_id'])
             execute_query(f'''UPDATE school_resources
                             SET file_url = {placeholder}, file_type = {placeholder}, cloudinary_public_id = {placeholder}
                             WHERE id = {placeholder}''', (file_url, file_type, cloudinary_public_id, resource_id), commit=True)
@@ -4750,12 +5090,7 @@ def admin_syllabus_upload():
         
         if file and file.filename:
             try:
-                file_path, file_url, file_type = save_upload_file(file, ['syllabus'])
-                cld_url, cld_public_id = upload_to_cloudinary(file_path)
-                if cld_url:
-                    file_url = cld_url
-                    cloudinary_public_id = cld_public_id
-                    os.remove(file_path)
+                file_path, file_url, file_type, cloudinary_public_id = store_uploaded_file(file, ['syllabus'])
             except Exception as e:
                 flash(f'File upload error: {e}', 'danger')
                 return redirect(url_for('admin_syllabus_upload'))

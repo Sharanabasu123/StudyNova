@@ -18,71 +18,59 @@
 
     <!-- Founders Grid -->
     <div class="row g-4">
-        <!-- Founder 1 -->
+        {% if founders %}
+            {% for founder in founders %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 hover-lift">
+                    <div class="card-body text-center">
+                        {% if founder.profile_url %}
+                        <img src="{{ founder.profile_url }}" alt="{{ founder.name }}" class="rounded-circle mb-3" style="width: 130px; height: 130px; object-fit: cover;">
+                        {% else %}
+                        <div class="mb-3">
+                            <i class="fas fa-user-circle fa-5x text-primary"></i>
+                        </div>
+                        {% endif %}
+                        <h5 class="card-title">{{ founder.name }}</h5>
+                        <p class="text-muted mb-2">{{ founder.title or 'Founder & CEO' }}</p>
+                        <p class="card-text small">{{ founder.bio or 'Leader helping to build StudyNova for students.' }}</p>
+                        <div class="d-flex justify-content-center gap-2 mt-3">
+                            {% if founder.linkedin_url %}
+                            <a href="{{ founder.linkedin_url }}" class="btn btn-outline-primary btn-sm" target="_blank" rel="noopener noreferrer">
+                                <i class="fab fa-linkedin me-1"></i>LinkedIn
+                            </a>
+                            {% endif %}
+                            {% if founder.github_url %}
+                            <a href="{{ founder.github_url }}" class="btn btn-outline-dark btn-sm" target="_blank" rel="noopener noreferrer">
+                                <i class="fab fa-github me-1"></i>GitHub
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
         <div class="col-md-6 col-lg-4">
             <div class="card h-100 hover-lift">
                 <div class="card-body text-center">
                     <div class="mb-3">
                         <i class="fas fa-user-circle fa-5x text-primary"></i>
                     </div>
-                    <h5 class="card-title">Sharanabasu</h5>
-                    <p class="text-muted mb-2">Co-Founder & CEO</p>
+                    <h5 class="card-title">Sharanabasu Malasidda Police Patil</h5>
+                    <p class="text-muted mb-2">Founder & CEO</p>
                     <p class="card-text small">Visionary leader with a passion for education technology and student empowerment.</p>
                     <div class="d-flex justify-content-center gap-2 mt-3">
-                        <a href="#" class="btn btn-outline-primary btn-sm">
+                        <a href="https://www.linkedin.com/in/sharanabasu-police-patil" class="btn btn-outline-primary btn-sm" target="_blank" rel="noopener noreferrer">
                             <i class="fab fa-linkedin me-1"></i>LinkedIn
                         </a>
-                        <a href="#" class="btn btn-outline-dark btn-sm">
+                        <a href="https://github.com/Sharanabasu123" class="btn btn-outline-dark btn-sm" target="_blank" rel="noopener noreferrer">
                             <i class="fab fa-github me-1"></i>GitHub
                         </a>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Founder 2 -->
-        <div class="col-md-6 col-lg-4">
-            <div class="card h-100 hover-lift">
-                <div class="card-body text-center">
-                    <div class="mb-3">
-                        <i class="fas fa-user-circle fa-5x text-success"></i>
-                    </div>
-                    <h5 class="card-title">Shreyas G S</h5>
-                    <p class="text-muted mb-2">Co-Founder & CTO</p>
-                    <p class="card-text small">Tech enthusiast focused on building scalable solutions for educational excellence.</p>
-                    <div class="d-flex justify-content-center gap-2 mt-3">
-                        <a href="#" class="btn btn-outline-primary btn-sm">
-                            <i class="fab fa-linkedin me-1"></i>LinkedIn
-                        </a>
-                        <a href="#" class="btn btn-outline-dark btn-sm">
-                            <i class="fab fa-github me-1"></i>GitHub
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Founder 3 -->
-        <div class="col-md-6 col-lg-4">
-            <div class="card h-100 hover-lift">
-                <div class="card-body text-center">
-                    <div class="mb-3">
-                        <i class="fas fa-user-circle fa-5x text-info"></i>
-                    </div>
-                    <h5 class="card-title">Pavan</h5>
-                    <p class="text-muted mb-2">Co-Founder & COO</p>
-                    <p class="card-text small">Operations expert ensuring seamless delivery of quality educational resources.</p>
-                    <div class="d-flex justify-content-center gap-2 mt-3">
-                        <a href="#" class="btn btn-outline-primary btn-sm">
-                            <i class="fab fa-linkedin me-1"></i>LinkedIn
-                        </a>
-                        <a href="#" class="btn btn-outline-dark btn-sm">
-                            <i class="fab fa-github me-1"></i>GitHub
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
+        {% endif %}
     </div>
 
     <!-- Mission Section -->
