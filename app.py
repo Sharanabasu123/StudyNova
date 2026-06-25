@@ -54,11 +54,19 @@ if CLOUDINARY_AVAILABLE:
     if cloud_name and api_key and api_secret:
         try:
             cloudinary.config(cloud_name=cloud_name, api_key=api_key, api_secret=api_secret, secure=True)
-        except Exception:
+            print(f"[cloudinary] Cloudinary initialized successfully with cloud_name={cloud_name}")
+        except Exception as e:
+            print(f"[cloudinary] Failed to configure Cloudinary: {e}")
             CLOUDINARY_AVAILABLE = False
     else:
         # Required env vars not present — disable Cloudinary integration
+        print("[cloudinary] Cloudinary env vars missing: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, or CLOUDINARY_API_SECRET")
+        print(f"[cloudinary]   CLOUDINARY_CLOUD_NAME={cloud_name}")
+        print(f"[cloudinary]   CLOUDINARY_API_KEY={'***' if api_key else 'MISSING'}")
+        print(f"[cloudinary]   CLOUDINARY_API_SECRET={'***' if api_secret else 'MISSING'}")
         CLOUDINARY_AVAILABLE = False
+else:
+    print("[cloudinary] Cloudinary SDK not installed or import failed")
 
 @app.before_request
 def ensure_database_initialized():
@@ -2554,9 +2562,12 @@ def upload_to_cloudinary(file_path):
     if not cloudinary_configured():
         raise RuntimeError('Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.')
     try:
+        print("[cloudinary] Cloudinary upload started")
         upload_result = cloudinary.uploader.upload(file_path, resource_type="auto")
+        print(f"[cloudinary] Cloudinary upload successful: {upload_result['public_id']}")
         return upload_result['secure_url'], upload_result['public_id']
     except Exception as e:
+        print(f"[cloudinary] Cloudinary upload failed: {e}")
         raise RuntimeError(f"Cloudinary upload error: {e}")
 
 
@@ -2574,6 +2585,7 @@ def upload_file_to_cloudinary(file, folder=None):
     file.save(temp_file.name)
 
     try:
+        print(f"[cloudinary] Cloudinary upload started: {filename} to folder={folder}")
         upload_options = {'resource_type': 'auto'}
         if folder:
             upload_options['folder'] = folder
@@ -2582,8 +2594,12 @@ def upload_file_to_cloudinary(file, folder=None):
         public_id = upload_result.get('public_id')
         if not secure_url:
             raise RuntimeError('Cloudinary upload did not return a secure URL.')
+        print(f"[cloudinary] Cloudinary upload successful: {public_id} -> {secure_url}")
         return secure_url, public_id, ext.lower().lstrip('.')
     except Exception as e:
+        print(f"[cloudinary] Cloudinary upload failed: {e}")
+        import traceback
+        print(f"[cloudinary] Traceback: {traceback.format_exc()}")
         raise RuntimeError(f"Cloudinary upload error: {e}")
     finally:
         try:
@@ -5142,6 +5158,28 @@ def manifest():
             }
         ]
     })
+
+
+# Debug endpoint for verifying Cloudinary configuration
+@app.route('/admin/debug/cloudinary')
+@admin_required
+def debug_cloudinary():
+    """Check Cloudinary configuration and status for debugging."""
+    cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME')
+    api_key = os.environ.get('CLOUDINARY_API_KEY')
+    api_secret = os.environ.get('CLOUDINARY_API_SECRET')
+    
+    status = {
+        'cloudinary_available': CLOUDINARY_AVAILABLE,
+        'cloudinary_configured': cloudinary_configured(),
+        'cloud_name': cloud_name or 'NOT SET',
+        'api_key': '***' if api_key else 'NOT SET',
+        'api_secret': '***' if api_secret else 'NOT SET',
+        'sdk_installed': CLOUDINARY_AVAILABLE,
+        'env_vars_present': bool(cloud_name and api_key and api_secret)
+    }
+    
+    return jsonify(status)
 
 
 @app.route('/sw.js')

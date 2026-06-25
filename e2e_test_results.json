@@ -1,0 +1,173 @@
+{
+  "environment": [
+    {
+      "test": "Env: CLOUDINARY_CLOUD_NAME",
+      "status": "PASS",
+      "details": "scfrqv2e"
+    },
+    {
+      "test": "Env: CLOUDINARY_API_KEY",
+      "status": "PASS",
+      "details": "413537642465712"
+    },
+    {
+      "test": "Env: CLOUDINARY_API_SECRET",
+      "status": "PASS",
+      "details": "I0E-tm38Ro2JLYN..."
+    },
+    {
+      "test": "Cloudinary API Connection",
+      "status": "PASS",
+      "details": "Cloud: scfrqv2e"
+    },
+    {
+      "test": "Cloudinary API Connection",
+      "status": "FAIL",
+      "details": "'usage'"
+    }
+  ],
+  "database_existing": [],
+  "upload_tests": [
+    {
+      "test": "Upload: test_document.pdf",
+      "status": "PASS",
+      "details": "ID: test-pdf-e2e/e2e_test_document_126308.pdf"
+    },
+    {
+      "test": "Upload: test_image.jpg",
+      "status": "FAIL",
+      "details": "Invalid image file"
+    },
+    {
+      "test": "Upload: test_notes.txt",
+      "status": "PASS",
+      "details": "ID: test-notes-e2e/e2e_test_notes_126308.txt"
+    },
+    {
+      "test": "Upload: test_syllabus.docx",
+      "status": "PASS",
+      "details": "ID: test-syllabus-e2e/e2e_test_syllabus_126308.docx"
+    },
+    {
+      "test": "Route exists: /upload",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "test": "Route exists: /admin/notes/upload",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "test": "Route exists: /admin/notes/replace/<note_id>",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "test": "Route exists: /admin/team/add",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "test": "Route exists: /admin/team/edit/<member_id>",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "test": "Route exists: /profile/save",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "test": "Route exists: /admin/syllabus/upload",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "test": "Route exists: /admin/competitive-exams/topic/<id>/resource/add",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "test": "Route exists: /admin/school-notes/chapter/<id>/resource/add",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "test": "store_uploaded_file() function",
+      "status": "PASS",
+      "details": "Used 12 times in app.py"
+    }
+  ],
+  "database_persistence": [
+    {
+      "test": "Database connection",
+      "status": "PASS",
+      "details": "Connected, 28 tables"
+    },
+    {
+      "test": "Column: cloudinary_public_id",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "test": "Column: file_url",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "test": "Team Column: profile_url",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "test": "Team Column: profile_public_id",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "test": "User Column: profile_photo",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "test": "User Column: profile_photo_public_id",
+      "status": "PASS",
+      "details": ""
+    }
+  ],
+  "delete_tests": [
+    {
+      "test": "Delete: test_document.pdf",
+      "status": "WARN",
+      "details": "Result: not found"
+    },
+    {
+      "test": "Delete: test_notes.txt",
+      "status": "WARN",
+      "details": "Result: not found"
+    }
+  ],
+  "preview_download": [
+    {
+      "test": "URL Encoding: scfrqv2e/raw/upload/v1234/test-notes-e2e...",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "test": "URL Encoding: scfrqv2e/image/upload/v1234/test-image-e...",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "test": "URL Encoding: scfrqv2e/raw/upload/v1234/path/with spac...",
+      "status": "PASS",
+      "details": ""
+    }
+  ],
+  "summary": {
+    "passed": 27,
+    "failed": 2,
+    "warnings": 2
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "env_verification": [
+    {
+      "check": "CLOUDINARY_CLOUD_NAME",
+      "status": "PASS"
+    },
+    {
+      "check": "CLOUDINARY_API_KEY",
+      "status": "PASS"
+    },
+    {
+      "check": "CLOUDINARY_API_SECRET",
+      "status": "PASS"
+    },
+    {
+      "check": "Cloudinary API",
+      "status": "PASS"
+    }
+  ],
+  "upload_tests": [],
+  "database_verification": [
+    {
+      "check": "Database setup",
+      "status": "FAIL",
+      "error": "table users has no column named password_hash"
+    },
+    {
+      "check": "Admin Notes Cloudinary entries",
+      "status": "PASS",
+      "count": 5
+    },
+    {
+      "check": "Team Members Cloudinary entries",
+      "status": "INFO",
+      "count": 0
+    },
+    {
+      "check": "Users Cloudinary entries",
+      "status": "INFO",
+      "count": 0
+    },
+    {
+      "check": "School Notes Cloudinary entries",
+      "status": "INFO",
+      "count": 0
+    },
+    {
+      "check": "Exam Resources Cloudinary entries",
+      "status": "INFO",
+      "count": 0
+    },
+    {
+      "check": "Syllabus Cloudinary entries",
+      "status": "INFO",
+      "count": 0
+    },
+    {
+      "check": "Admin Notes Cloudinary entries",
+      "status": "PASS",
+      "count": 5
+    },
+    {
+      "check": "Team Members Cloudinary entries",
+      "status": "INFO",
+      "count": 0
+    },
+    {
+      "check": "Users Cloudinary entries",
+      "status": "INFO",
+      "count": 0
+    },
+    {
+      "check": "School Notes Cloudinary entries",
+      "status": "INFO",
+      "count": 0
+    },
+    {
+      "check": "Exam Resources Cloudinary entries",
+      "status": "INFO",
+      "count": 0
+    },
+    {
+      "check": "Syllabus Cloudinary entries",
+      "status": "INFO",
+      "count": 0
+    }
+  ],
+  "preview_download_tests": [],
+  "delete_tests": [],
+  "summary": {
+    "app_running": false
+  }
+}
