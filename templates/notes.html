@@ -86,7 +86,7 @@
                     {% else %}
                         <!-- Local Upload -->
                         <div class="ratio ratio-16x9">
-                            <iframe src="/preview/{{ selected_resource.filename }}" 
+                            <iframe src="/preview/{{ selected_resource.filename | urlencode }}" 
                                     title="{{ selected_resource.title }}" 
                                     allowfullscreen></iframe>
                         </div>
@@ -96,7 +96,7 @@
             
             <div class="d-flex flex-wrap gap-2 justify-content-center">
                 {% if selected_resource.filename %}
-                    <a href="/download/{{ selected_resource.filename }}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+                    <a href="/download/{{ selected_resource.filename | urlencode }}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
                         <i class="fas fa-download me-2"></i>Download
                     </a>
                 {% endif %}
@@ -389,11 +389,11 @@
                                     </p>
                                     <div class="d-flex flex-wrap gap-2 mb-3">
                                         <!-- Preview Button -->
-                                        <a href="/preview/{{ res.filename }}" class="btn btn-outline-primary btn-sm flex-grow-1" target="_blank" rel="noopener noreferrer">
+                                        <a href="/preview/{{ res.filename | urlencode }}" class="btn btn-outline-primary btn-sm flex-grow-1" target="_blank" rel="noopener noreferrer">
                                             <i class="fas fa-eye me-1"></i>Preview
                                         </a>
                                         <!-- Download Button -->
-                                        <a href="/download/{{ res.filename }}" class="btn btn-primary btn-sm flex-grow-1">
+                                        <a href="/download/{{ res.filename | urlencode }}" class="btn btn-primary btn-sm flex-grow-1">
                                             <i class="fas fa-download me-1"></i>Download
                                         </a>
                                     </div>

@@ -14,15 +14,10 @@
     <div class="container">
         <div class="glass-card p-4 p-md-5 text-center">
             {% if filename %}
+            {% set file_src = media_url(filename) %}
             {% if filename.endswith('.pdf') or 'pdf' in filename or filename.startswith('http') %}
                 <div class="ratio ratio-16x9">
-                    {% if filename.startswith('http') %}
-                        <iframe src="{{ filename }}" title="PDF Preview" allowfullscreen></iframe>
-                    {% else %}
-                        <!-- Handle both cases: filename starts with "uploads/" or not -->
-                        {% set file_path = filename if filename.startswith('uploads/') else 'uploads/' + filename %}
-                        <iframe src="/{{ file_path }}" title="PDF Preview" allowfullscreen></iframe>
-                    {% endif %}
+                    <iframe src="{{ file_src }}" title="PDF Preview" allowfullscreen></iframe>
                 </div>
             {% else %}
                 <p class="text-muted">Preview not available for this file type.</p>
@@ -30,17 +25,9 @@
         {% endif %}
             <div class="mt-4">
                 {% if filename %}
-                    {% if filename.startswith('http') %}
-                        <a href="{{ filename }}" class="btn btn-primary" target="_blank">
-                            <i class="fas fa-download me-2"></i>Download
-                        </a>
-                    {% else %}
-                        <!-- Handle both cases: filename starts with "uploads/" or not -->
-                        {% set file_path = filename if filename.startswith('uploads/') else filename %}
-                        <a href="/download/{{ file_path }}" class="btn btn-primary">
-                            <i class="fas fa-download me-2"></i>Download
-                        </a>
-                    {% endif %}
+                    <a href="{{ file_src }}" class="btn btn-primary" target="_blank">
+                        <i class="fas fa-download me-2"></i>Download
+                    </a>
                 {% endif %}
                 <a href="/notes" class="btn btn-outline-secondary ms-2">
                     <i class="fas fa-arrow-left me-2"></i>Back to Library

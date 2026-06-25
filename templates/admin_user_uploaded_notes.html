@@ -140,10 +140,10 @@
                     <td><span class="badge bg-{{ get_status_badge(note.is_approved) }}">{{ get_status_label(note.is_approved) }}</span></td>
                     <td>
                         <div class="btn-group" role="group">
-                            <a href="{{ url_for('preview', filename=note.file_url) }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Preview">
+                            <a href="{{ url_for('preview', filename=note.file_url|urlencode) }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Preview">
                                 <i class="fas fa-eye"></i>
                             </a>
-                            <a href="{{ url_for('download', filename=note.file_url) }}" class="btn btn-sm btn-outline-primary" title="Download">
+                            <a href="{{ url_for('download', filename=note.file_url|urlencode) }}" class="btn btn-sm btn-outline-primary" title="Download">
                                 <i class="fas fa-download"></i>
                             </a>
                             <a href="{{ url_for('admin_edit_note', note_id=note.id) }}" class="btn btn-sm btn-outline-success" title="Edit Details">

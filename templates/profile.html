@@ -23,11 +23,7 @@
                                 <div class="position-relative d-inline-block mb-4">
                                     <div class="rounded-circle overflow-hidden border-4 border-primary" style="width:180px; height:180px;">
                                         {% if user.profile_photo %}
-                                            {% if 'http' in user.profile_photo %}
-                                                <img src="{{ user.profile_photo }}" class="w-100 h-100 object-fit-cover" alt="Profile">
-                                            {% else %}
-                                                <img src="{{ url_for('static', filename='uploads/' ~ user.profile_photo) }}" class="w-100 h-100 object-fit-cover" alt="Profile">
-                                            {% endif %}
+                                            <img src="{{ media_url(user.profile_photo) }}" class="w-100 h-100 object-fit-cover" alt="Profile">
                                         {% else %}
                                             <div class="bg-gradient-to-r w-100 h-100 d-flex align-items-center justify-content-center text-white" style="font-size:4rem;">
                                                 <i class="fas fa-user-circle"></i>

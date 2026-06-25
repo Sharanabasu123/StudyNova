@@ -4,6 +4,7 @@ import json
 import os
 import sqlite3
 from datetime import datetime, timedelta
+from urllib.parse import unquote
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import shutil
@@ -12,6 +13,13 @@ import tempfile
 from uuid import uuid4
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+
+# Load environment variables from .env if available
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
 
 # Admin notification settings - all contact form messages are forwarded to this email
 ADMIN_NOTIFICATION_EMAIL = os.environ.get('MAIL_DEFAULT_SENDER', 'demo@studynova.com')
@@ -22,16 +30,9 @@ try:
     import cloudinary.uploader
     import cloudinary.api
     CLOUDINARY_AVAILABLE = True
-
-    # Configure Cloudinary from environment variables
-    cloudinary.config(
-        cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
-        api_key=os.environ.get('CLOUDINARY_API_KEY'),
-        api_secret=os.environ.get('CLOUDINARY_API_SECRET')
-    )
-except ImportError:
+except Exception:
+    cloudinary = None
     CLOUDINARY_AVAILABLE = False
-
 app = Flask(__name__)
 app.secret_key = os.environ.get('STUDYNOVA_SECRET_KEY') or os.urandom(32)
 UPLOAD_FOLDER = 'uploads'
@@ -45,6 +46,20 @@ ALLOWED_UPLOAD_EXTENSIONS = {'pdf', 'ppt', 'pptx', 'doc', 'docx'}
 ALLOWED_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 _database_initialized = False
 
+# Configure Cloudinary if the SDK is available and environment variables are set
+if CLOUDINARY_AVAILABLE:
+    cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME')
+    api_key = os.environ.get('CLOUDINARY_API_KEY')
+    api_secret = os.environ.get('CLOUDINARY_API_SECRET')
+    if cloud_name and api_key and api_secret:
+        try:
+            cloudinary.config(cloud_name=cloud_name, api_key=api_key, api_secret=api_secret, secure=True)
+        except Exception:
+            CLOUDINARY_AVAILABLE = False
+    else:
+        # Required env vars not present — disable Cloudinary integration
+        CLOUDINARY_AVAILABLE = False
+
 @app.before_request
 def ensure_database_initialized():
     """Ensure the database schema and academic data exist once per process."""
@@ -56,12 +71,42 @@ def ensure_database_initialized():
 # Route to serve uploaded files
 @app.route('/uploads/<path:filename>')
 def serve_upload(filename):
+    # Prefer Cloudinary-hosted files when available. If a resource exists
+    # and has a Cloudinary public id, redirect to the stored secure URL.
+    try:
+        placeholder = get_placeholder()
+        # Try to match resources where the stored file_url contains the filename
+        resource = execute_query(f"SELECT * FROM resources WHERE file_url LIKE {placeholder} LIMIT 1", (f"%{filename}%",), fetchone=True)
+        if resource:
+            cloud_id = resource.get('cloudinary_public_id') or resource.get('cloud_public_id')
+            file_url = resource.get('file_url')
+            if cloud_id and file_url and file_url.startswith('http'):
+                return redirect(file_url)
+    except Exception:
+        # On any error, fall back to local serving so the app remains usable in dev.
+        pass
+
+    # Final fallback: serve local file from uploads. This is only used when
+    # Cloudinary is not configured or the record is still pointing to a
+    # local file path.
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 # Make execute_query available in templates
 @app.context_processor
 def utility_processor():
-    return dict(execute_query=execute_query, get_placeholder=get_placeholder)
+    def media_url(path_or_url):
+        if not path_or_url:
+            return ''
+        # If already an absolute URL, return as-is
+        if isinstance(path_or_url, str) and (path_or_url.startswith('http://') or path_or_url.startswith('https://')):
+            return path_or_url
+        # If stored as 'uploads/...' strip the prefix and route to serve_upload
+        if isinstance(path_or_url, str) and path_or_url.startswith('uploads/'):
+            return url_for('serve_upload', filename=path_or_url[len('uploads/'):])
+        # Otherwise assume it's a filename stored in uploads
+        return url_for('serve_upload', filename=path_or_url)
+
+    return dict(execute_query=execute_query, get_placeholder=get_placeholder, media_url=media_url)
 
 
 MYSQL_CONFIG = {
@@ -144,19 +189,11 @@ def get_db_connection():
         conn.execute('PRAGMA foreign_keys = ON')
         return conn
     except sqlite3.DatabaseError:
-        try:
-            conn.close()
-        except Exception:
-            pass
-        invalid_path = DATABASE + '.invalid'
-        if os.path.exists(invalid_path):
-            invalid_path = DATABASE + f".invalid_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        print(f"[DEBUG] Invalid SQLite database detected. Renaming {DATABASE} to {invalid_path} and creating a fresh database.")
-        os.replace(DATABASE, invalid_path)
-        conn = sqlite3.connect(DATABASE)
-        conn.row_factory = sqlite3.Row
-        conn.execute('PRAGMA foreign_keys = ON')
-        return conn
+        # Do not automatically rename or replace an invalid database file.
+        # Re-raise the error so an administrator can inspect and repair the
+        # database manually. This prevents accidental data loss during
+        # application startup.
+        raise
 
 
 def get_placeholder():
@@ -270,87 +307,24 @@ def init_db():
             has_profile_photo_id_column = False
 
     if users_table_exists and (not has_role_column or not has_bio_column or not has_profile_photo_id_column):
-        # Migrate users table
-        print("Migrating users table...")
-
-        # Columns we want to keep
-        keep_columns = ['id', 'username', 'email', 'password']
-        # Add columns that exist
-        if 'role' in existing_columns:
-            keep_columns.append('role')
-        if 'phone' in existing_columns:
-            keep_columns.append('phone')
-        if 'college' in existing_columns:
-            keep_columns.append('college')
-        if 'branch' in existing_columns:
-            keep_columns.append('branch')
-        if 'semester' in existing_columns:
-            keep_columns.append('semester')
-        if 'scheme' in existing_columns:
-            keep_columns.append('scheme')
-        if 'profile_photo' in existing_columns:
-            keep_columns.append('profile_photo')
-        if 'is_active' in existing_columns:
-            keep_columns.append('is_active')
-
-        if mysql_enabled():
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS users_new (
-                    id INT PRIMARY KEY AUTO_INCREMENT,
-                    username VARCHAR(100) NOT NULL,
-                    email VARCHAR(150) UNIQUE NOT NULL,
-                    password VARCHAR(255) NOT NULL,
-                    role VARCHAR(50) DEFAULT 'user',
-                    phone VARCHAR(20),
-                    college VARCHAR(255),
-                    branch VARCHAR(100),
-                    semester VARCHAR(50),
-                    scheme VARCHAR(50),
-                    profile_photo VARCHAR(255),
-                    profile_photo_public_id VARCHAR(255),
-                    bio TEXT,
-                    registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    is_active TINYINT DEFAULT 1
-                )
-            ''')
-            # Build insert query dynamically
-            insert_cols = ", ".join(keep_columns)
-            select_cols = ", ".join(keep_columns)
-            cursor.execute(f'''
-                INSERT IGNORE INTO users_new ({insert_cols})
-                SELECT {select_cols} FROM users
-            ''')
-            cursor.execute('DROP TABLE users')
-            cursor.execute('RENAME TABLE users_new TO users')
-        else:
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS users_new (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    username TEXT NOT NULL,
-                    email TEXT UNIQUE NOT NULL,
-                    password TEXT NOT NULL,
-                    role TEXT DEFAULT 'user',
-                    phone TEXT,
-                    college TEXT,
-                    branch TEXT,
-                    semester TEXT,
-                    scheme TEXT,
-                    profile_photo TEXT,
-                    profile_photo_public_id TEXT,
-                    bio TEXT,
-                    registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    is_active INTEGER DEFAULT 1
-                )
-            ''')
-            insert_cols = ", ".join(keep_columns)
-            select_cols = ", ".join(keep_columns)
-            cursor.execute(f'''
-                INSERT INTO users_new ({insert_cols})
-                SELECT {select_cols} FROM users
-            ''')
-            cursor.execute('DROP TABLE users')
-            cursor.execute('ALTER TABLE users_new RENAME TO users')
-        print("Users table migrated successfully!")
+        # Detected an older users table schema. To avoid any risk of data loss
+        # we will NOT perform a destructive migration (DROP/RENAME) automatically.
+        # Instead, ensure missing columns are added using ALTER TABLE only.
+        print("Non-destructive users schema upgrade: adding missing columns if any.")
+        try:
+            add_column_if_missing(cursor, 'users', 'role', "VARCHAR(50) DEFAULT 'user'" if mysql_enabled() else "TEXT DEFAULT 'user'")
+            add_column_if_missing(cursor, 'users', 'phone', "VARCHAR(20)" if mysql_enabled() else "TEXT")
+            add_column_if_missing(cursor, 'users', 'college', "VARCHAR(255)" if mysql_enabled() else "TEXT")
+            add_column_if_missing(cursor, 'users', 'branch', "VARCHAR(100)" if mysql_enabled() else "TEXT")
+            add_column_if_missing(cursor, 'users', 'semester', "VARCHAR(50)" if mysql_enabled() else "TEXT")
+            add_column_if_missing(cursor, 'users', 'scheme', "VARCHAR(50)" if mysql_enabled() else "TEXT")
+            add_column_if_missing(cursor, 'users', 'profile_photo', "VARCHAR(255)" if mysql_enabled() else "TEXT")
+            add_column_if_missing(cursor, 'users', 'profile_photo_public_id', "VARCHAR(255)" if mysql_enabled() else "TEXT")
+            add_column_if_missing(cursor, 'users', 'bio', "TEXT")
+            add_column_if_missing(cursor, 'users', 'registration_date', "TIMESTAMP DEFAULT CURRENT_TIMESTAMP" if mysql_enabled() else "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+            add_column_if_missing(cursor, 'users', 'is_active', "TINYINT DEFAULT 1" if mysql_enabled() else "INTEGER DEFAULT 1")
+        except Exception as e:
+            print(f"Error during non-destructive users schema upgrade: {e}")
 
     if not users_table_exists:
         if mysql_enabled():
@@ -1537,6 +1511,10 @@ def get_or_create_general_notes_subject(cursor):
 
 
 def migrate_legacy_notes(cursor):
+    # Non-destructive approach: detect legacy notes table but DO NOT modify or
+    # rename tables automatically during application startup. Automatic
+    # migration can risk data duplication or loss. Log instructions for the
+    # administrator to run the migration script manually if desired.
     if not table_exists(cursor, 'notes'):
         return
 
@@ -1550,68 +1528,10 @@ def migrate_legacy_notes(cursor):
     if 'filename' not in note_columns or 'category' not in note_columns:
         return
 
-    print("Legacy notes table detected: starting migration into resources...")
-
-    resources_count = execute_query("SELECT COUNT(*) as count FROM resources", fetchone=True)
-    existing_resources = resources_count['count']
-    if existing_resources > 0:
-        print("Resources table already contains data; converting legacy notes table only.")
-        legacy_table_name = "notes_legacy"
-        suffix = 1
-        while table_exists(cursor, legacy_table_name):
-            suffix += 1
-            legacy_table_name = f"notes_legacy_{suffix}"
-        if mysql_enabled():
-            cursor.execute(f"RENAME TABLE notes TO {legacy_table_name}")
-        else:
-            cursor.execute(f"ALTER TABLE notes RENAME TO {legacy_table_name}")
-        create_notes_table(cursor)
-        cursor.connection.commit()
-        sync_sql = insert_ignore_sql('notes', ['resource_id', 'subject_id', 'title', 'file_url', 'file_type'])
-        resources = execute_query("SELECT id, subject_id, title, file_url, file_type FROM resources", fetchall=True)
-        for resource in resources:
-            execute_query(sync_sql, (resource['id'], resource['subject_id'], resource['title'], resource['file_url'], resource['file_type']), commit=True)
-        return
-
-    general_subject_id = get_or_create_general_notes_subject(cursor)
-    if not general_subject_id:
-        print("Unable to create general notes subject for legacy migration.")
-        return
-
-    if mysql_enabled():
-        insert_sql = '''
-            INSERT INTO resources (subject_id, title, description, file_url, file_type, resource_type, module_number, uploaded_by, is_approved, upload_date, view_count, download_count)
-            SELECT %s, title, '', filename, LOWER(SUBSTRING_INDEX(filename, '.', -1)), category, NULL, NULL, 1, upload_date, 0, 0
-            FROM notes
-        '''
-    else:
-        insert_sql = '''
-            INSERT INTO resources (subject_id, title, description, file_url, file_type, resource_type, module_number, uploaded_by, is_approved, upload_date, view_count, download_count)
-            SELECT ?, title, '', filename,
-                   LOWER(CASE WHEN instr(filename, '.') > 0 THEN substr(filename, instr(filename, '.') + 1) ELSE 'pdf' END),
-                   category, NULL, NULL, 1, upload_date, 0, 0
-            FROM notes
-        '''
-    execute_query(insert_sql, (general_subject_id,), commit=True)
-    legacy_table_name = "notes_legacy"
-    suffix = 1
-    while table_exists(cursor, legacy_table_name):
-        suffix += 1
-        legacy_table_name = f"notes_legacy_{suffix}"
-
-    if mysql_enabled():
-        cursor.execute(f"RENAME TABLE notes TO {legacy_table_name}")
-    else:
-        cursor.execute(f"ALTER TABLE notes RENAME TO {legacy_table_name}")
-    create_notes_table(cursor)
-    cursor.connection.commit()
-
-    sync_sql = insert_ignore_sql('notes', ['resource_id', 'subject_id', 'title', 'file_url', 'file_type'])
-    resources = execute_query("SELECT id, subject_id, title, file_url, file_type FROM resources", fetchall=True)
-    for resource in resources:
-        execute_query(sync_sql, (resource['id'], resource['subject_id'], resource['title'], resource['file_url'], resource['file_type']), commit=True)
-
-    print(f"Legacy note rows migrated into resources; old table renamed to {legacy_table_name}.")
+    print("[WARNING] Legacy 'notes' table detected with old columns (filename/category).")
+    print("Automatic migration is disabled to avoid unintended data operations.")
+    print("To migrate legacy notes into resources, run the provided migration script manually.")
+    return
 
 
 def get_file_icon(extension):
@@ -3287,6 +3207,9 @@ def notes_library():
 
 @app.route('/preview/<path:filename>')
 def preview(filename):
+    # Decode path parameter so encoded Cloudinary URLs are handled correctly.
+    filename = unquote(filename)
+
     # Find resource by filename or file_url
     placeholder = get_placeholder()
     query = f"SELECT * FROM resources WHERE file_url LIKE {placeholder}"
@@ -3302,6 +3225,9 @@ def preview(filename):
 
 @app.route('/download/<path:filename>')
 def download(filename):
+    # Decode path to support absolute Cloudinary URLs passed through route parameters.
+    filename = unquote(filename)
+
     # Find resource by filename or file_url
     placeholder = get_placeholder()
     query = f"SELECT * FROM resources WHERE file_url LIKE {placeholder}"
@@ -3312,13 +3238,12 @@ def download(filename):
         update_query = f"UPDATE resources SET download_count = download_count + 1 WHERE id = {placeholder}"
         execute_query(update_query, (resource['id'],), commit=True)
 
-        # If it's a cloudinary URL, redirect there
-        if resource['cloudinary_public_id']:
+        # If it's a Cloudinary file, redirect to its secure URL
+        if resource['cloudinary_public_id'] and resource['file_url']:
             return redirect(resource['file_url'])
 
     # Otherwise serve locally
     try:
-        # If filename starts with "uploads/", strip that part
         if filename.startswith('uploads/'):
             filename = filename[len('uploads/'):]
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
