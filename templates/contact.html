@@ -84,20 +84,20 @@
                     <form action="/contact" method="POST" class="needs-validation" novalidate>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Full Name</label>
-                                <input type="text" class="form-control" placeholder="John Doe" required>
+                                <label for="name" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="name" name="name" placeholder="John Doe" value="{{ name }}" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Email Address</label>
-                                <input type="email" class="form-control" placeholder="john@example.com" required>
+                                <label for="email" class="form-label">Email Address</label>
+                                <input type="email" class="form-control" id="email" name="email" placeholder="john@example.com" value="{{ email }}" required>
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Subject</label>
-                                <input type="text" class="form-control" placeholder="Inquiry about..." required>
+                                <label for="subject" class="form-label">Subject</label>
+                                <input type="text" class="form-control" id="subject" name="subject" placeholder="Inquiry about..." value="{{ subject }}" required>
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Message</label>
-                                <textarea class="form-control" rows="5" placeholder="How can we help you?" required></textarea>
+                                <label for="message" class="form-label">Message</label>
+                                <textarea class="form-control" id="message" name="message" rows="5" placeholder="How can we help you?" required>{{ message }}</textarea>
                             </div>
                             <div class="col-12">
                                 <button type="submit" class="btn btn-primary btn-lg w-100 mt-3">Send Message</button>

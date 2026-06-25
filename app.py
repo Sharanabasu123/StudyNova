@@ -3046,17 +3046,26 @@ def founders():
 
 @app.route('/contact', methods=['GET', 'POST'])
 def contact():
+    name = ''
+    email = ''
+    subject = ''
+    message = ''
+
     if request.method == 'POST':
-        name = request.form['name']
-        email = request.form['email']
-        subject = request.form['subject']
-        message = request.form['message']
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip()
+        subject = request.form.get('subject', '').strip()
+        message = request.form.get('message', '')
+
+        if not name or not email or not subject or not message.strip():
+            flash('Please fill in all required contact fields before submitting your message.', 'danger')
+            return render_template('contact.html', name=name, email=email, subject=subject, message=message)
 
         placeholder = get_placeholder()
         query = '''
             INSERT INTO contact_messages (name, email, subject, message)
             VALUES (%s, %s, %s, %s)
-        ''' if mysql_enabled() else '''
+        ''' if mysql_enabled() or postgres_enabled() else '''
             INSERT INTO contact_messages (name, email, subject, message)
             VALUES (?, ?, ?, ?)
         '''
@@ -3065,7 +3074,7 @@ def contact():
         feedback_query = '''
             INSERT INTO feedback (name, email, subject, message)
             VALUES (%s, %s, %s, %s)
-        ''' if mysql_enabled() else '''
+        ''' if mysql_enabled() or postgres_enabled() else '''
             INSERT INTO feedback (name, email, subject, message)
             VALUES (?, ?, ?, ?)
         '''
@@ -3078,6 +3087,7 @@ def contact():
         send_admin_notification(name, email, subject, message)
 
         flash('Message sent successfully! We will get back to you soon.', 'success')
+        return render_template('contact.html')
 
     return render_template('contact.html')
 
