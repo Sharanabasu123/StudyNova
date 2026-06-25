@@ -1,0 +1,302 @@
+{% extends "layout.html" %}
+
+{% block title %}Syllabus - StudyNova{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Syllabus Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-primary text-white">
+                <div class="card-body">
+                    <h2 class="mb-0"><i class="fas fa-book me-2"></i>Syllabus</h2>
+                    <p class="mb-0 mt-2">Access subject-wise syllabus and course materials</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Selection Flow -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Select Subject</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Scheme Selection -->
+                        <div class="col-md-6 col-lg-3">
+                            <label class="form-label">Scheme</label>
+                            <select class="form-select" id="schemeSelect" onchange="onSchemeChange()">
+                                <option value="">Select Scheme</option>
+                                {% for scheme in schemes %}
+                                <option value="{{ scheme.id }}">{{ scheme.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Semester Selection -->
+                        <div class="col-md-6 col-lg-3">
+                            <label class="form-label">Semester</label>
+                            <select class="form-select" id="semesterSelect" onchange="onSemesterChange()" disabled>
+                                <option value="">Select Semester</option>
+                            </select>
+                        </div>
+
+                        <!-- Branch Selection -->
+                        <div class="col-md-6 col-lg-3">
+                            <label class="form-label">Branch</label>
+                            <select class="form-select" id="branchSelect" onchange="onBranchChange()" disabled>
+                                <option value="">Select Branch</option>
+                                {% for branch in branches %}
+                                <option value="{{ branch.id }}">{{ branch.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Subject Selection -->
+                        <div class="col-md-6 col-lg-3">
+                            <label class="form-label">Subject</label>
+                            <select class="form-select" id="subjectSelect" onchange="onSubjectChange()" disabled>
+                                <option value="">Select Subject</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Syllabus Content -->
+    <div class="row" id="syllabusContent" style="display: none;">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt me-2"></i>Syllabus Details
+                    </h5>
+                    <div id="syllabusActions" class="btn-group">
+                        <!-- Actions will be added dynamically -->
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="syllabusDetails">
+                        <!-- Syllabus content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- No Syllabus Message -->
+    <div class="row" id="noSyllabusMessage" style="display: none;">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No syllabus available</h5>
+                    <p class="text-muted">Syllabus for the selected subject has not been uploaded yet.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentSchemeId = null;
+let currentSemesterId = null;
+let currentBranchId = null;
+let currentSubjectId = null;
+
+// Scheme change handler
+function onSchemeChange() {
+    const schemeId = document.getElementById('schemeSelect').value;
+    currentSchemeId = schemeId ? parseInt(schemeId) : null;
+    currentSemesterId = null;
+    currentBranchId = null;
+    currentSubjectId = null;
+    
+    // Reset dropdowns
+    document.getElementById('semesterSelect').innerHTML = '<option value="">Select Semester</option>';
+    document.getElementById('branchSelect').innerHTML = '<option value="">Select Branch</option>';
+    document.getElementById('subjectSelect').innerHTML = '<option value="">Select Subject</option>';
+    
+    document.getElementById('semesterSelect').disabled = true;
+    document.getElementById('branchSelect').disabled = true;
+    document.getElementById('subjectSelect').disabled = true;
+    
+    document.getElementById('syllabusContent').style.display = 'none';
+    document.getElementById('noSyllabusMessage').style.display = 'none';
+    
+    if (schemeId) {
+        document.getElementById('semesterSelect').disabled = false;
+        loadSemesters(schemeId);
+    }
+}
+
+// Load semesters for selected scheme
+function loadSemesters(schemeId) {
+    fetch(`/api/syllabus/subjects?scheme_id=${schemeId}`)
+        .then(res => res.json())
+        .then(subjects => {
+            // Extract unique semesters from subjects
+            const semesters = [...new Set(subjects.map(s => s.semester_id))];
+            const semesterSelect = document.getElementById('semesterSelect');
+            semesterSelect.innerHTML = '<option value="">Select Semester</option>';
+            
+            // We need to get semester names - for now use numbers
+            semesters.forEach(semId => {
+                semesterSelect.innerHTML += `<option value="${semId}">Semester ${semId}</option>`;
+            });
+        })
+        .catch(err => console.error('Error loading semesters:', err));
+}
+
+// Semester change handler
+function onSemesterChange() {
+    const semesterId = document.getElementById('semesterSelect').value;
+    currentSemesterId = semesterId ? parseInt(semesterId) : null;
+    currentBranchId = null;
+    currentSubjectId = null;
+    
+    document.getElementById('branchSelect').innerHTML = '<option value="">Select Branch</option>';
+    document.getElementById('subjectSelect').innerHTML = '<option value="">Select Subject</option>';
+    
+    document.getElementById('branchSelect').disabled = true;
+    document.getElementById('subjectSelect').disabled = true;
+    
+    document.getElementById('syllabusContent').style.display = 'none';
+    document.getElementById('noSyllabusMessage').style.display = 'none';
+    
+    if (semesterId && currentSchemeId) {
+        document.getElementById('branchSelect').disabled = false;
+        loadSubjects(currentSchemeId, currentSemesterId);
+    }
+}
+
+// Branch change handler
+function onBranchChange() {
+    const branchId = document.getElementById('branchSelect').value;
+    currentBranchId = branchId ? parseInt(branchId) : null;
+    currentSubjectId = null;
+    
+    document.getElementById('subjectSelect').innerHTML = '<option value="">Select Subject</option>';
+    document.getElementById('subjectSelect').disabled = true;
+    
+    document.getElementById('syllabusContent').style.display = 'none';
+    document.getElementById('noSyllabusMessage').style.display = 'none';
+    
+    if (branchId && currentSchemeId && currentSemesterId) {
+        document.getElementById('subjectSelect').disabled = false;
+        loadSubjects(currentSchemeId, currentSemesterId, currentBranchId);
+    }
+}
+
+// Load subjects based on selections
+function loadSubjects(schemeId, semesterId, branchId = null) {
+    let url = `/api/syllabus/subjects?scheme_id=${schemeId}&semester_id=${semesterId}`;
+    if (branchId) {
+        url += `&branch_id=${branchId}`;
+    }
+    
+    fetch(url)
+        .then(res => res.json())
+        .then(subjects => {
+            const subjectSelect = document.getElementById('subjectSelect');
+            subjectSelect.innerHTML = '<option value="">Select Subject</option>';
+            
+            subjects.forEach(subject => {
+                subjectSelect.innerHTML += `<option value="${subject.id}">${subject.code} - ${subject.name}</option>`;
+            });
+            
+            document.getElementById('subjectSelect').disabled = false;
+        })
+        .catch(err => console.error('Error loading subjects:', err));
+}
+
+// Subject change handler
+function onSubjectChange() {
+    const subjectId = document.getElementById('subjectSelect').value;
+    currentSubjectId = subjectId ? parseInt(subjectId) : null;
+    
+    if (subjectId) {
+        loadSyllabus(subjectId);
+    } else {
+        document.getElementById('syllabusContent').style.display = 'none';
+        document.getElementById('noSyllabusMessage').style.display = 'none';
+    }
+}
+
+// Load syllabus for selected subject
+function loadSyllabus(subjectId) {
+    fetch(`/api/syllabus/${subjectId}`)
+        .then(res => res.json())
+        .then(syllabus => {
+            if (syllabus) {
+                displaySyllabus(syllabus);
+            } else {
+                document.getElementById('syllabusContent').style.display = 'none';
+                document.getElementById('noSyllabusMessage').style.display = 'block';
+            }
+        })
+        .catch(err => {
+            console.error('Error loading syllabus:', err);
+            document.getElementById('syllabusContent').style.display = 'none';
+            document.getElementById('noSyllabusMessage').style.display = 'block';
+        });
+}
+
+// Display syllabus content
+function displaySyllabus(syllabus) {
+    document.getElementById('syllabusContent').style.display = 'block';
+    document.getElementById('noSyllabusMessage').style.display = 'none';
+    
+    const detailsDiv = document.getElementById('syllabusDetails');
+    const actionsDiv = document.getElementById('syllabusActions');
+    
+    // Build syllabus HTML
+    let html = '';
+    
+    if (syllabus.course_description) {
+        html += '<div class="mb-4"><h6>Course Description</h6><p>' + syllabus.course_description + '</p></div>';
+    }
+    if (syllabus.course_outcomes) {
+        html += '<div class="mb-4"><h6>Course Outcomes</h6><p>' + syllabus.course_outcomes + '</p></div>';
+    }
+    
+    // Modules
+    for (let i = 1; i <= 5; i++) {
+        const moduleKey = 'module' + i;
+        if (syllabus[moduleKey]) {
+            html += `<div class="mb-3"><h6>Module ${i}</h6><div class="border-start ps-3">${syllabus[moduleKey]}</div></div>`;
+        }
+    }
+    
+    if (syllabus.text_books) {
+        html += '<div class="mb-3"><h6>Text Books</h6><p>' + syllabus.text_books + '</p></div>';
+    }
+    if (syllabus.reference_books) {
+        html += '<div class="mb-3"><h6>Reference Books</h6><p>' + syllabus.reference_books + '</p></div>';
+    }
+    
+    detailsDiv.innerHTML = html;
+    
+    // Build action buttons
+    let actionsHtml = '';
+    if (syllabus.file_url) {
+        actionsHtml += `
+            <a href="/preview/${syllabus.file_url}" class="btn btn-outline-primary btn-sm" target="_blank">
+                <i class="fas fa-eye me-1"></i>Preview
+            </a>
+            <a href="/download/${syllabus.file_url}" class="btn btn-primary btn-sm">
+                <i class="fas fa-download me-1"></i>Download
+            </a>
+        `;
+    }
+    actionsDiv.innerHTML = actionsHtml;
+}
+</script>
+{% endblock %}

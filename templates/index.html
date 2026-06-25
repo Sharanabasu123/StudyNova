@@ -1,6 +1,13 @@
 {% extends 'layout.html' %}
 
 {% block content %}
+<!-- Welcome Ticker -->
+<div class="welcome-ticker-wrap">
+  <div class="welcome-ticker">
+    <span>🎉 Welcome to StudyNova! — Your Ultimate Academic Resource Platform — Free Notes • Syllabus • Question Papers • Placement Prep — Join Now and Start Learning!</span>
+  </div>
+</div>
+
 <!-- Hero Section -->
 <section class="hero-section">
     <div class="container">
@@ -11,8 +18,8 @@
                 </h1>
                 <p class="hero-subtitle mb-4">Access notes, PPTs, coding resources, and study materials in one smart platform.</p>
                 <div class="hero-buttons">
-                    <a href="/notes" class="btn btn-primary btn-lg me-3"><i class="fas fa-book-open me-2"></i>Explore Library</a>
-                    <a href="/upload" class="btn btn-outline-light btn-lg"><i class="fas fa-cloud-upload-alt me-2"></i>Upload Notes</a>
+                    <a href="/notes" class="btn btn-primary btn-lg me-3" onclick="return checkLogin(event, '/notes')"><i class="fas fa-book-open me-2"></i>Explore Library</a>
+                    <a href="/upload" class="btn btn-outline-light btn-lg" onclick="return checkLogin(event, '/upload')"><i class="fas fa-cloud-upload-alt me-2"></i>Upload Notes</a>
                 </div>
             </div>
             <div class="col-lg-6 text-center" data-aos="fade-left">
@@ -53,102 +60,144 @@
     </div>
 </section>
 
-<!-- Popular Content -->
-<section class="popular-content py-5 bg-light">
+<!-- Why StudyNova is Best -->
+<section class="why-best-section py-5 bg-light">
     <div class="container">
         <div class="section-header text-center mb-5" data-aos="fade-up">
-            <h2 class="section-title">🔥 Popular Content</h2>
-            <p>Trending, most downloaded, and most viewed notes</p>
-        </div>
-
-        <div class="row g-4 mb-5">
-            <div class="col-lg-4" data-aos="fade-up" data-aos-delay="100">
-                <div class="glass-card h-100">
-                    <h5 class="mb-3"><i class="fas fa-fire text-danger"></i> Trending Notes</h5>
-                    <div class="list-group list-group-flush">
-                        {% for note in trending_notes %}
-                        <a href="/preview/{{ note.filename }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between">
-                                <span>{{ note.title }}</span>
-                                <small class="text-muted">{{ note.download_count + note.view_count }} interactions</small>
-                            </div>
-                        </a>
-                        {% else %}
-                        <p class="text-muted text-center">No trending notes yet</p>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4" data-aos="fade-up" data-aos-delay="200">
-                <div class="glass-card h-100">
-                    <h5 class="mb-3"><i class="fas fa-download text-primary"></i> Most Downloaded</h5>
-                    <div class="list-group list-group-flush">
-                        {% for note in most_downloaded_notes %}
-                        <a href="/preview/{{ note.filename }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between">
-                                <span>{{ note.title }}</span>
-                                <span class="badge bg-primary">{{ note.download_count }}</span>
-                            </div>
-                        </a>
-                        {% else %}
-                        <p class="text-muted text-center">No downloads yet</p>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4" data-aos="fade-up" data-aos-delay="300">
-                <div class="glass-card h-100">
-                    <h5 class="mb-3"><i class="fas fa-eye text-info"></i> Most Viewed</h5>
-                    <div class="list-group list-group-flush">
-                        {% for note in most_viewed_notes %}
-                        <a href="/preview/{{ note.filename }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between">
-                                <span>{{ note.title }}</span>
-                                <span class="badge bg-info text-dark">{{ note.view_count }}</span>
-                            </div>
-                        </a>
-                        {% else %}
-                        <p class="text-muted text-center">No views yet</p>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Latest Notes -->
-<section class="featured-notes py-5">
-    <div class="container">
-        <div class="section-header text-center mb-5" data-aos="fade-up">
-            <h2 class="section-title">Latest Study Materials</h2>
-            <p>Freshly uploaded notes from our community</p>
+            <h2 class="section-title">⭐ Why StudyNova is Best</h2>
+            <p class="lead">The ultimate platform for engineering students</p>
         </div>
         <div class="row g-4">
-            {% for note in notes %}
-            <div class="col-md-4" data-aos="fade-up" data-aos-delay="{{ loop.index * 100 }}">
-                <div class="glass-card note-card">
-                    <div class="note-icon">
-                        <i class="{{ note.icon }}"></i>
-                    </div>
-                    <div class="note-badge">{{ note.category }}</div>
-                    <h3>{{ note.title }}</h3>
-                    <p><i class="fas fa-book-open me-2"></i>{{ note.subject }}</p>
-                    <div class="d-flex justify-content-between align-items-center mt-3">
-                        <span class="date"><i class="far fa-calendar-alt me-1"></i> {{ note.date }}</span>
-                        <div class="d-flex gap-2">
-                            <a href="/preview/{{ note.filename }}" class="btn btn-sm btn-outline-primary">Preview</a>
-                            <a href="/download/{{ note.filename }}" class="btn btn-sm btn-primary">Download</a>
+            <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="0">
+                <div class="glass-card h-100 p-4">
+                    <div class="d-flex align-items-start">
+                        <div class="best-icon me-3">
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                        </div>
+                        <div>
+                            <h5>Comprehensive VTU Curriculum</h5>
+                            <p class="text-muted small mb-0">Complete coverage of 2022 & 2025 VTU schemes with all branches and semesters</p>
                         </div>
                     </div>
                 </div>
             </div>
-            {% endfor %}
-        </div>
-        <div class="text-center mt-5" data-aos="fade-up">
-            <a href="/notes" class="btn btn-outline-primary">View All Library</a>
+            <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="50">
+                <div class="glass-card h-100 p-4">
+                    <div class="d-flex align-items-start">
+                        <div class="best-icon me-3">
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                        </div>
+                        <div>
+                            <h5>Quality Verified Content</h5>
+                            <p class="text-muted small mb-0">All notes are reviewed and approved by admins to ensure accuracy and quality</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="100">
+                <div class="glass-card h-100 p-4">
+                    <div class="d-flex align-items-start">
+                        <div class="best-icon me-3">
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                        </div>
+                        <div>
+                            <h5>Lab & Theory Separation</h5>
+                            <p class="text-muted small mb-0">Smart categorization ensures lab subjects have only lab manuals, theory subjects have proper notes</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="150">
+                <div class="glass-card h-100 p-4">
+                    <div class="d-flex align-items-start">
+                        <div class="best-icon me-3">
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                        </div>
+                        <div>
+                            <h5>Instant Preview & Download</h5>
+                            <p class="text-muted small mb-0">Preview notes instantly in modal without leaving the page, download with one click</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="200">
+                <div class="glass-card h-100 p-4">
+                    <div class="d-flex align-items-start">
+                        <div class="best-icon me-3">
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                        </div>
+                        <div>
+                            <h5>Gamification with Stars</h5>
+                            <p class="text-muted small mb-0">Earn 5 stars for every approved contribution. Climb the leaderboard and showcase achievements</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="250">
+                <div class="glass-card h-100 p-4">
+                    <div class="d-flex align-items-start">
+                        <div class="best-icon me-3">
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                        </div>
+                        <div>
+                            <h5>Competitive Exam Prep</h5>
+                            <p class="text-muted small mb-0">Dedicated section for KPSC, SSC, RRB, Banking exams with structured resources</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="300">
+                <div class="glass-card h-100 p-4">
+                    <div class="d-flex align-items-start">
+                        <div class="best-icon me-3">
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                        </div>
+                        <div>
+                            <h5>School Notes (Class 6-10)</h5>
+                            <p class="text-muted small mb-0">Complete study materials for school students with chapter-wise organization</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="350">
+                <div class="glass-card h-100 p-4">
+                    <div class="d-flex align-items-start">
+                        <div class="best-icon me-3">
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                        </div>
+                        <div>
+                            <h5>100% Free & Open Access</h5>
+                            <p class="text-muted small mb-0">All resources are completely free. No hidden charges, no premium subscriptions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="400">
+                <div class="glass-card h-100 p-4">
+                    <div class="d-flex align-items-start">
+                        <div class="best-icon me-3">
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                        </div>
+                        <div>
+                            <h5>User-Friendly Interface</h5>
+                            <p class="text-muted small mb-0">Clean, modern design with easy navigation. Find what you need in seconds</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="450">
+                <div class="glass-card h-100 p-4">
+                    <div class="d-flex align-items-start">
+                        <div class="best-icon me-3">
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                        </div>
+                        <div>
+                            <h5>Mobile Responsive Design</h5>
+                            <p class="text-muted small mb-0">Access notes on any device - phone, tablet, or desktop. Study anytime, anywhere</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>
@@ -156,38 +205,198 @@
 <!-- Features Section -->
 <section class="features-section py-5 bg-light">
     <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-6" data-aos="fade-right">
-                <img src="https://cdni.iconscout.com/illustration/premium/thumb/online-education-4122137-3430485.png" alt="Features" class="img-fluid">
+        <div class="section-header text-center mb-5" data-aos="fade-up">
+            <h2 class="section-title">🚀 StudyNova Features</h2>
+            <p class="lead">Everything you need for smarter learning in one platform.</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="0">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-book-open fa-2x text-primary"></i>
+                    </div>
+                    <h5>Notes Library</h5>
+                    <p class="text-muted small">Access comprehensive study materials</p>
+                </div>
             </div>
-            <div class="col-lg-6" data-aos="fade-left">
-                <h2 class="section-title mb-4">Why Choose StudyNova?</h2>
-                <div class="feature-item d-flex mb-4">
-                    <div class="feature-icon me-3">
-                        <i class="fas fa-check-circle"></i>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="50">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-cloud-upload-alt fa-2x text-success"></i>
                     </div>
-                    <div>
-                        <h4>Free Access</h4>
-                        <p>All notes and materials are available for free for all students.</p>
-                    </div>
+                    <h5>Upload Notes</h5>
+                    <p class="text-muted small">Share your notes with community</p>
                 </div>
-                <div class="feature-item d-flex mb-4">
-                    <div class="feature-icon me-3">
-                        <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="100">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-download fa-2x text-info"></i>
                     </div>
-                    <div>
-                        <h4>Quality Content</h4>
-                        <p>Materials are uploaded by students and verified for quality.</p>
-                    </div>
+                    <h5>Download Notes</h5>
+                    <p class="text-muted small">Download materials instantly</p>
                 </div>
-                <div class="feature-item d-flex mb-4">
-                    <div class="feature-icon me-3">
-                        <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="150">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-eye fa-2x text-warning"></i>
                     </div>
-                    <div>
-                        <h4>Fast Downloads</h4>
-                        <p>High-speed servers ensure your materials are ready when you are.</p>
+                    <h5>Preview Notes</h5>
+                    <p class="text-muted small">Preview before downloading</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="200">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-file-alt fa-2x text-danger"></i>
                     </div>
+                    <h5>Syllabus</h5>
+                    <p class="text-muted small">Access detailed syllabus</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="250">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-trophy fa-2x text-warning"></i>
+                    </div>
+                    <h5>Leaderboard</h5>
+                    <p class="text-muted small">Compete with peers</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="300">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-star fa-2x text-primary"></i>
+                    </div>
+                    <h5>Contribution Stars</h5>
+                    <p class="text-muted small">Earn stars for contributions</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="350">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-user fa-2x text-success"></i>
+                    </div>
+                    <h5>User Profile</h5>
+                    <p class="text-muted small">Manage your profile</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="400">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-briefcase fa-2x text-info"></i>
+                    </div>
+                    <h5>Placement Prep</h5>
+                    <p class="text-muted small">Prepare for placements</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="450">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-pen fa-2x text-warning"></i>
+                    </div>
+                    <h5>Competitive Exams</h5>
+                    <p class="text-muted small">KPSC, SSC, RRB & more</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="500">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-school fa-2x text-danger"></i>
+                    </div>
+                    <h5>School Notes</h5>
+                    <p class="text-muted small">Class 6-10 study materials</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="550">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-bell fa-2x text-primary"></i>
+                    </div>
+                    <h5>Notifications</h5>
+                    <p class="text-muted small">Stay updated</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="600">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-search fa-2x text-success"></i>
+                    </div>
+                    <h5>Smart Search</h5>
+                    <p class="text-muted small">Find notes quickly</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="650">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-chart-bar fa-2x text-info"></i>
+                    </div>
+                    <h5>Dashboard</h5>
+                    <p class="text-muted small">Track your progress</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="700">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-comment fa-2x text-warning"></i>
+                    </div>
+                    <h5>Feedback</h5>
+                    <p class="text-muted small">Share your feedback</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="750">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-phone fa-2x text-danger"></i>
+                    </div>
+                    <h5>Contact Us</h5>
+                    <p class="text-muted small">Get in touch</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="800">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-shield-alt fa-2x text-primary"></i>
+                    </div>
+                    <h5>Secure Login</h5>
+                    <p class="text-muted small">Safe and secure</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="850">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-mobile-alt fa-2x text-success"></i>
+                    </div>
+                    <h5>Mobile Friendly</h5>
+                    <p class="text-muted small">Works on all devices</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="900">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-bolt fa-2x text-info"></i>
+                    </div>
+                    <h5>Progressive Web App</h5>
+                    <p class="text-muted small">Install like native app</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="950">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-cloud fa-2x text-warning"></i>
+                    </div>
+                    <h5>Cloud Storage</h5>
+                    <p class="text-muted small">Files stored securely</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6" data-aos="fade-up" data-aos-delay="1000">
+                <div class="glass-card feature-card h-100 text-center p-4">
+                    <div class="feature-icon-wrapper mb-3">
+                        <i class="fas fa-envelope fa-2x text-danger"></i>
+                    </div>
+                    <h5>Email Notifications</h5>
+                    <p class="text-muted small">Get updates via email</p>
                 </div>
             </div>
         </div>
@@ -223,4 +432,19 @@
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Login check function
+function checkLogin(event, redirectUrl) {
+    {% if not session.get('user_email') %}
+        event.preventDefault();
+        alert('Please login to access StudyNova resources.');
+        window.location.href = '/login';
+        return false;
+    {% endif %}
+    return true;
+}
+</script>
 {% endblock %}

@@ -1,0 +1,285 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard - StudyNova{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Statistics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-start border-4 border-warning h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1">Contribution Stars</p>
+                            <h3 class="mb-0">{{ user.stars or 0 }} ⭐</h3>
+                        </div>
+                        <div class="fs-1 text-warning">⭐</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-start border-4 border-primary h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1">Achievement Level</p>
+                            <h5 class="mb-0">{{ user.achievement_level or 'Beginner' }}</h5>
+                        </div>
+                        <div class="fs-1 text-primary">🏆</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-start border-4 border-danger h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1">Notifications</p>
+                            <h3 class="mb-0" id="notifications-count">0</h3>
+                        </div>
+                        <div class="fs-1 text-danger">🔔</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-start border-4 border-success h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1">Total Downloads</p>
+                            <h3 class="mb-0" id="total-downloads">0</h3>
+                        </div>
+                        <div class="fs-1 text-success">📥</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Access Cards -->
+    <h4 class="mb-3">Quick Access</h4>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <a href="/notes" class="text-decoration-none">
+                <div class="card h-100 hover-lift">
+                    <div class="card-body text-center">
+                        <div class="fs-1 text-primary mb-2">📚</div>
+                        <h5>Notes Library</h5>
+                        <p class="text-muted">Access subject-wise notes and resources</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="/syllabus" class="text-decoration-none">
+                <div class="card h-100 hover-lift">
+                    <div class="card-body text-center">
+                        <div class="fs-1 text-success mb-2">📖</div>
+                        <h5>Syllabus</h5>
+                        <p class="text-muted">View and download syllabus</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="/placement" class="text-decoration-none">
+                <div class="card h-100 hover-lift">
+                    <div class="card-body text-center">
+                        <div class="fs-1 text-warning mb-2">💼</div>
+                        <h5>Placement Preparation</h5>
+                        <p class="text-muted">Aptitude, reasoning, and interview prep</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <a href="/leaderboard" class="text-decoration-none">
+                <div class="card h-100 hover-lift">
+                    <div class="card-body text-center">
+                        <div class="fs-1 text-danger mb-2">📊</div>
+                        <h5>Leaderboard</h5>
+                        <p class="text-muted">Top contributors and achievers</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="/about" class="text-decoration-none">
+                <div class="card h-100 hover-lift">
+                    <div class="card-body text-center">
+                        <div class="fs-1 text-info mb-2">ℹ️</div>
+                        <h5>About StudyNova</h5>
+                        <p class="text-muted">Learn more about our platform</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="/profile" class="text-decoration-none">
+                <div class="card h-100 hover-lift">
+                    <div class="card-body text-center">
+                        <div class="fs-1 text-secondary mb-2">👤</div>
+                        <h5>My Profile</h5>
+                        <p class="text-muted">View and edit your profile</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Subject Library Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">📚 Subject Library</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Scheme Selection -->
+                    <div class="mb-3">
+                        <label class="form-label">Select Scheme</label>
+                        <select class="form-select" id="scheme-select" onchange="loadSemesters()">
+                            <option value="">-- Select Scheme --</option>
+                            {% for scheme in schemes %}
+                            <option value="{{ scheme.id }}">{{ scheme.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Semester Selection -->
+                    <div class="mb-3">
+                        <label class="form-label">Select Semester</label>
+                        <select class="form-select" id="semester-select" disabled onchange="loadBranches()">
+                            <option value="">-- Select Semester --</option>
+                        </select>
+                    </div>
+
+                    <!-- Branch Selection -->
+                    <div class="mb-3">
+                        <label class="form-label">Select Branch</label>
+                        <select class="form-select" id="branch-select" disabled onchange="loadSubjects()">
+                            <option value="">-- Select Branch --</option>
+                            {% for branch in branches %}
+                            <option value="{{ branch.id }}">{{ branch.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Subjects Grid -->
+                    <div id="subjects-grid" class="row g-3 mt-3">
+                        <!-- Subjects will be loaded here dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Load dashboard stats
+function loadDashboardStats() {
+    fetch('/api/dashboard/stats')
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('notifications-count').textContent = data.notifications_count;
+            document.getElementById('total-downloads').textContent = data.total_downloads;
+        });
+}
+
+// Load semesters based on selected scheme
+function loadSemesters() {
+    const schemeId = document.getElementById('scheme-select').value;
+    const semesterSelect = document.getElementById('semester-select');
+    
+    if (!schemeId) {
+        semesterSelect.disabled = true;
+        return;
+    }
+    
+    fetch(`/admin/api/semesters?scheme_id=${schemeId}`)
+        .then(res => res.json())
+        .then(data => {
+            semesterSelect.innerHTML = '<option value="">-- Select Semester --</option>';
+            data.forEach(sem => {
+                semesterSelect.innerHTML += `<option value="${sem.id}">${sem.name}</option>`;
+            });
+            semesterSelect.disabled = false;
+        });
+}
+
+// Load branches based on selected semester
+function loadBranches() {
+    const schemeId = document.getElementById('scheme-select').value;
+    const semesterId = document.getElementById('semester-select').value;
+    const branchSelect = document.getElementById('branch-select');
+    
+    if (!schemeId || !semesterId) {
+        branchSelect.disabled = true;
+        return;
+    }
+    
+    fetch(`/admin/api/branches?scheme_id=${schemeId}&semester_id=${semesterId}`)
+        .then(res => res.json())
+        .then(data => {
+            branchSelect.innerHTML = '<option value="">-- Select Branch --</option>';
+            data.forEach(branch => {
+                branchSelect.innerHTML += `<option value="${branch.id}">${branch.name}</option>`;
+            });
+            branchSelect.disabled = false;
+        });
+}
+
+// Load subjects based on selections
+function loadSubjects() {
+    const schemeId = document.getElementById('scheme-select').value;
+    const semesterId = document.getElementById('semester-select').value;
+    const branchId = document.getElementById('branch-select').value;
+    const subjectsGrid = document.getElementById('subjects-grid');
+    
+    if (!schemeId || !semesterId || !branchId) {
+        subjectsGrid.innerHTML = '';
+        return;
+    }
+    
+    fetch(`/admin/api/subjects?scheme_id=${schemeId}&semester_id=${semesterId}&branch_id=${branchId}`)
+        .then(res => res.json())
+        .then(data => {
+            subjectsGrid.innerHTML = '';
+            if (data.length === 0) {
+                subjectsGrid.innerHTML = '<div class="col-12"><p class="text-muted">No subjects found. Please add subjects from admin panel.</p></div>';
+                return;
+            }
+            
+            data.forEach(subject => {
+                const isLab = subject.code && subject.code.toLowerCase().includes('lab');
+                const card = `
+                    <div class="col-md-4 col-lg-3">
+                        <a href="/notes?subject_id=${subject.id}" class="text-decoration-none">
+                            <div class="card h-100 hover-lift subject-card">
+                                <div class="card-body">
+                                    <h6 class="card-title text-primary">${subject.code}</h6>
+                                    <p class="card-text small">${subject.name}</p>
+                                    ${isLab ? '<span class="badge bg-warning">Lab</span>' : '<span class="badge bg-info">Theory</span>'}
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                `;
+                subjectsGrid.innerHTML += card;
+            });
+        });
+}
+
+// Load stats on page load
+document.addEventListener('DOMContentLoaded', loadDashboardStats);
+</script>
+{% endblock %}

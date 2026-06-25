@@ -13,7 +13,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 # Admin notification settings - all contact form messages are forwarded to this email
-ADMIN_NOTIFICATION_EMAIL = 'studynovaofficial@gmail.com'
+ADMIN_NOTIFICATION_EMAIL = os.environ.get('MAIL_DEFAULT_SENDER', 'demo@studynova.com')
 
 # Cloudinary Integration
 try:
@@ -449,6 +449,26 @@ def init_db():
             )
         ''')
 
+    # Create streams table
+    if mysql_enabled():
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS streams (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                name VARCHAR(100) UNIQUE NOT NULL,
+                code VARCHAR(50) UNIQUE NOT NULL,
+                description TEXT
+            )
+        ''')
+    else:
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS streams (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                code TEXT UNIQUE NOT NULL,
+                description TEXT
+            )
+        ''')
+
     # Create subjects table
     if mysql_enabled():
         cursor.execute('''
@@ -502,6 +522,10 @@ def init_db():
             if not cursor.fetchone():
                 cursor.execute("ALTER TABLE subjects ADD COLUMN is_common TINYINT DEFAULT 0")
                 conn.commit()
+            cursor.execute("SHOW COLUMNS FROM subjects LIKE 'is_lab'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE subjects ADD COLUMN is_lab TINYINT DEFAULT 0")
+                conn.commit()
         else:
             cursor.execute("PRAGMA table_info(subjects)")
             columns = [col[1] for col in cursor.fetchall()]
@@ -510,6 +534,9 @@ def init_db():
                 conn.commit()
             if 'is_common' not in columns:
                 cursor.execute("ALTER TABLE subjects ADD COLUMN is_common INTEGER DEFAULT 0")
+                conn.commit()
+            if 'is_lab' not in columns:
+                cursor.execute("ALTER TABLE subjects ADD COLUMN is_lab INTEGER DEFAULT 0")
                 conn.commit()
     except Exception as e:
         print(f"Error adding columns: {e}")
@@ -1150,6 +1177,178 @@ def init_db():
     ensure_default_academic_data(cursor)
     migrate_legacy_notes(cursor)
 
+    # Add stars column to users table for contribution system
+    try:
+        if mysql_enabled():
+            cursor.execute("SHOW COLUMNS FROM users LIKE 'stars'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE users ADD COLUMN stars INT DEFAULT 0")
+                conn.commit()
+        else:
+            cursor.execute("PRAGMA table_info(users)")
+            columns = [col[1] for col in cursor.fetchall()]
+            if 'stars' not in columns:
+                cursor.execute("ALTER TABLE users ADD COLUMN stars INTEGER DEFAULT 0")
+                conn.commit()
+    except Exception as e:
+        print(f"Error adding stars column: {e}")
+
+    # Add achievement_level column to users table
+    try:
+        if mysql_enabled():
+            cursor.execute("SHOW COLUMNS FROM users LIKE 'achievement_level'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE users ADD COLUMN achievement_level VARCHAR(50) DEFAULT 'Beginner'")
+                conn.commit()
+        else:
+            cursor.execute("PRAGMA table_info(users)")
+            columns = [col[1] for col in cursor.fetchall()]
+            if 'achievement_level' not in columns:
+                cursor.execute("ALTER TABLE users ADD COLUMN achievement_level TEXT DEFAULT 'Beginner'")
+                conn.commit()
+    except Exception as e:
+        print(f"Error adding achievement_level column: {e}")
+
+    # Create activity_logs table
+    if mysql_enabled():
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS activity_logs (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT,
+                admin_id INT,
+                action VARCHAR(255) NOT NULL,
+                details TEXT,
+                ip_address VARCHAR(45),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (admin_id) REFERENCES users(id)
+            )
+        ''')
+    else:
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS activity_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                admin_id INTEGER,
+                action TEXT NOT NULL,
+                details TEXT,
+                ip_address TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (admin_id) REFERENCES users(id)
+            )
+        ''')
+
+    # Create report_notes table
+    if mysql_enabled():
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS report_notes (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                resource_id INT NOT NULL,
+                reported_by INT NOT NULL,
+                report_type VARCHAR(100) NOT NULL,
+                description TEXT,
+                status VARCHAR(50) DEFAULT 'pending',
+                resolved_by INT,
+                resolved_at TIMESTAMP NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (resource_id) REFERENCES resources(id),
+                FOREIGN KEY (reported_by) REFERENCES users(id),
+                FOREIGN KEY (resolved_by) REFERENCES users(id)
+            )
+        ''')
+    else:
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS report_notes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                resource_id INTEGER NOT NULL,
+                reported_by INTEGER NOT NULL,
+                report_type TEXT NOT NULL,
+                description TEXT,
+                status TEXT DEFAULT 'pending',
+                resolved_by INTEGER,
+                resolved_at TIMESTAMP NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (resource_id) REFERENCES resources(id),
+                FOREIGN KEY (reported_by) REFERENCES users(id),
+                FOREIGN KEY (resolved_by) REFERENCES users(id)
+            )
+        ''')
+
+    # Create syllabus table
+    if mysql_enabled():
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS syllabus (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                subject_id INT NOT NULL,
+                file_url TEXT NOT NULL,
+                file_type VARCHAR(50) NOT NULL,
+                cloudinary_public_id TEXT,
+                course_description TEXT,
+                course_outcomes TEXT,
+                module1 TEXT,
+                module2 TEXT,
+                module3 TEXT,
+                module4 TEXT,
+                module5 TEXT,
+                text_books TEXT,
+                reference_books TEXT,
+                uploaded_by INT,
+                upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (subject_id) REFERENCES subjects(id),
+                FOREIGN KEY (uploaded_by) REFERENCES users(id)
+            )
+        ''')
+    else:
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS syllabus (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                subject_id INTEGER NOT NULL,
+                file_url TEXT NOT NULL,
+                file_type TEXT NOT NULL,
+                cloudinary_public_id TEXT,
+                course_description TEXT,
+                course_outcomes TEXT,
+                module1 TEXT,
+                module2 TEXT,
+                module3 TEXT,
+                module4 TEXT,
+                module5 TEXT,
+                text_books TEXT,
+                reference_books TEXT,
+                uploaded_by INTEGER,
+                upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (subject_id) REFERENCES subjects(id),
+                FOREIGN KEY (uploaded_by) REFERENCES users(id)
+            )
+        ''')
+
+    # Create password_reset_tokens table
+    if mysql_enabled():
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NOT NULL,
+                token VARCHAR(255) UNIQUE NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                used TINYINT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        ''')
+    else:
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token TEXT UNIQUE NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                used INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        ''')
+
     # Create single admin user if not exists
     placeholder = get_placeholder()
     cursor.execute(f"SELECT * FROM users WHERE role = {placeholder}", ('admin',))
@@ -1415,38 +1614,238 @@ def admin_required(view):
 # Sends through Gmail SMTP using credentials supplied via environment variables.
 #   MAIL_USERNAME   - Gmail address used as the sender (e.g. studynovaofficial@gmail.com)
 #   MAIL_PASSWORD   - Gmail App Password for the sender account
-def send_admin_notification(name, sender_email, subject, message):
+def get_email_template(subject, content, recipient_name="User"):
+    """Generate professional HTML email template"""
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{subject}</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: 'Poppins', Arial, sans-serif; background-color: #f4f4f4;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f4f4f4;">
+            <tr>
+                <td align="center" style="padding: 20px 0;">
+                    <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <!-- Header -->
+                        <tr>
+                            <td style="background: linear-gradient(135deg, #4b0082 0%, #6a5acd 100%); padding: 30px; text-align: center;">
+                                <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">StudyNova</h1>
+                                <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">Your Ultimate Academic Resource Platform</p>
+                            </td>
+                        </tr>
+                        <!-- Content -->
+                        <tr>
+                            <td style="padding: 40px 30px;">
+                                {content}
+                            </td>
+                        </tr>
+                        <!-- Footer -->
+                        <tr>
+                            <td style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e0e0e0;">
+                                <p style="margin: 0; font-size: 12px; color: #666666;">
+                                    © 2025 StudyNova. All rights reserved.
+                                </p>
+                                <p style="margin: 5px 0 0 0; font-size: 11px; color: #999999;">
+                                    This is an automated email. Please do not reply to this message.
+                                </p>
+                                <p style="margin: 5px 0 0 0; font-size: 11px; color: #999999;">
+                                    Contact us: studynovaofficial@gmail.com
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+    return html
+
+
+def send_email(to_email, subject, body, is_html=False):
+    """Generic email sending function using Gmail SMTP"""
     smtp_host = os.environ.get('MAIL_SMTP_HOST', 'smtp.gmail.com')
     smtp_port = int(os.environ.get('MAIL_SMTP_PORT', 587))
     mail_username = os.environ.get('MAIL_USERNAME', 'studynovaofficial@gmail.com')
     mail_password = os.environ.get('MAIL_PASSWORD')
 
     if not mail_password:
-        # No credentials configured - skip silently so the contact form still works.
+        print("[email] MAIL_PASSWORD not configured, skipping email send")
         return False
 
     try:
-        body = (
-            f"New contact form submission on StudyNova\n\n"
-            f"From: {name} <{sender_email}>\n"
-            f"Subject: {subject}\n\n"
-            f"Message:\n{message}\n"
-        )
-
         msg = MIMEMultipart()
         msg['From'] = mail_username
-        msg['To'] = ADMIN_NOTIFICATION_EMAIL
-        msg['Subject'] = f"[StudyNova Contact] {subject}"
-        msg.attach(MIMEText(body, 'plain'))
+        msg['To'] = to_email
+        msg['Subject'] = subject
+
+        if is_html:
+            msg.attach(MIMEText(body, 'html'))
+        else:
+            msg.attach(MIMEText(body, 'plain'))
 
         with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
             server.starttls()
             server.login(mail_username, mail_password)
-            server.sendmail(mail_username, [ADMIN_NOTIFICATION_EMAIL], msg.as_string())
+            server.sendmail(mail_username, [to_email], msg.as_string())
         return True
     except Exception as exc:
-        print(f"[contact] Failed to forward message to admin email: {exc}")
+        print(f"[email] Failed to send email: {exc}")
         return False
+
+
+def send_admin_notification(name, sender_email, subject, message):
+    """Forward contact form submission to admin email"""
+    content = f"""
+        <h2>New Contact Form Submission</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e0e0e0;"><strong>From:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e0e0e0;">{name} <{sender_email}></td>
+            </tr>
+            <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e0e0e0;"><strong>Subject:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e0e0e0;">{subject}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e0e0e0;"><strong>Message:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e0e0e0;">{message}</td>
+            </tr>
+        </table>
+    """
+    html_body = get_email_template(f"[StudyNova Contact] {subject}", content)
+    return send_email(ADMIN_NOTIFICATION_EMAIL, f"[StudyNova Contact] {subject}", html_body, is_html=True)
+
+
+def send_welcome_email(user_email, username):
+    """Send welcome email to newly registered user"""
+    subject = "Welcome to StudyNova!"
+    content = f"""
+        <p>Dear <strong>{username}</strong>,</p>
+        <p>Welcome to <strong>StudyNova</strong> - Your Ultimate Academic Resource Platform!</p>
+        <p>We're excited to have you on board. StudyNova provides:</p>
+        <ul>
+            <li>Quality notes and study materials</li>
+            <li>Syllabus and question papers</li>
+            <li>Placement preparation resources</li>
+            <li>And much more!</li>
+        </ul>
+        <p>Start exploring now: <a href="http://studynova.com" style="color: #4b0082;">StudyNova</a></p>
+        <p>Best regards,<br><strong>StudyNova Team</strong></p>
+    """
+    html_body = get_email_template(subject, content)
+    return send_email(user_email, subject, html_body, is_html=True)
+
+
+def send_password_reset_email(user_email, username, reset_token):
+    """Send password reset email"""
+    reset_url = f"http://studynova.com/reset-password?token={reset_token}"
+    subject = "StudyNova - Password Reset Request"
+    content = f"""
+        <p>Dear <strong>{username}</strong>,</p>
+        <p>You have requested to reset your password. Click the button below to reset it:</p>
+        <p style="text-align: center;">
+            <a href="{reset_url}" style="background: linear-gradient(135deg, #4b0082, #6a5acd); color: #fff; padding: 12px 30px; border-radius: 30px; text-decoration: none; font-weight: 600; display: inline-block;">Reset Password</a>
+        </p>
+        <p>This link will expire in <strong>1 hour</strong>.</p>
+        <p>If you did not request this, please ignore this email.</p>
+        <p>Best regards,<br><strong>StudyNova Team</strong></p>
+    """
+    html_body = get_email_template(subject, content)
+    return send_email(user_email, subject, html_body, is_html=True)
+
+
+def send_note_approved_email(user_email, username, note_title):
+    """Send notification when a note is approved"""
+    subject = "StudyNova - Your Note Has Been Approved!"
+    content = f"""
+        <p>Dear <strong>{username}</strong>,</p>
+        <p>🎉 Great news! Your note <strong>"{note_title}"</strong> has been approved and is now visible to all students.</p>
+        <p>Thank you for contributing to the StudyNova community!</p>
+        <p>Best regards,<br><strong>StudyNova Team</strong></p>
+    """
+    html_body = get_email_template(subject, content)
+    return send_email(user_email, subject, html_body, is_html=True)
+
+
+def send_note_rejected_email(user_email, username, note_title, reason=""):
+    """Send notification when a note is rejected"""
+    subject = "StudyNova - Note Submission Update"
+    reason_html = f"<p><strong>Reason:</strong> {reason}</p>" if reason else ""
+    content = f"""
+        <p>Dear <strong>{username}</strong>,</p>
+        <p>Your note <strong>"{note_title}"</strong> was not approved.</p>
+        {reason_html}
+        <p>Please review our guidelines and try again.</p>
+        <p>Best regards,<br><strong>StudyNova Team</strong></p>
+    """
+    html_body = get_email_template(subject, content)
+    return send_email(user_email, subject, html_body, is_html=True)
+
+
+def send_feedback_notification_email(feedback_id, name, email, subject_fb, message):
+    """Send notification to user when feedback is received"""
+    subject = f"[StudyNova] Feedback Received: {subject_fb}"
+    content = f"""
+        <p>Dear <strong>{name}</strong>,</p>
+        <p>Thank you for your feedback! We have received your message:</p>
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e0e0e0;"><strong>Subject:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e0e0e0;">{subject_fb}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e0e0e0;"><strong>Message:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e0e0e0;">{message}</td>
+            </tr>
+        </table>
+        <p>We will get back to you soon.</p>
+        <p>Feedback ID: {feedback_id}</p>
+        <p>Best regards,<br><strong>StudyNova Team</strong></p>
+    """
+    html_body = get_email_template(subject, content)
+    return send_email(email, subject, html_body, is_html=True)
+
+
+def send_contact_notification_email(contact_id, name, email, subject_ct, message):
+    """Send notification to user when contact form is submitted"""
+    subject = f"[StudyNova] Contact Form Received: {subject_ct}"
+    content = f"""
+        <p>Dear <strong>{name}</strong>,</p>
+        <p>Thank you for contacting us! We have received your message:</p>
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e0e0e0;"><strong>Subject:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e0e0e0;">{subject_ct}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e0e0e0;"><strong>Message:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e0e0e0;">{message}</td>
+            </tr>
+        </table>
+        <p>We will get back to you soon.</p>
+        <p>Contact ID: {contact_id}</p>
+        <p>Best regards,<br><strong>StudyNova Team</strong></p>
+    """
+    html_body = get_email_template(subject, content)
+    return send_email(email, subject, html_body, is_html=True)
+
+
+def log_activity(admin_id=None, user_id=None, action="", details="", ip_address=None):
+    """Log admin/user activity"""
+    try:
+        placeholder = get_placeholder()
+        query = f'''
+            INSERT INTO activity_logs (admin_id, user_id, action, details, ip_address)
+            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+        '''
+        execute_query(query, (admin_id, user_id, action, details, ip_address), commit=True)
+    except Exception as e:
+        print(f"Error logging activity: {e}")
 
 
 def get_all_resources():
@@ -1484,6 +1883,19 @@ def get_stats():
     total_messages = safe_get_count("SELECT COUNT(*) as count FROM contact_messages")
     unread_messages = safe_get_count(f"SELECT COUNT(*) as count FROM contact_messages WHERE status = {placeholder}", ('unread',))
 
+    # Get pending/approved/rejected notes count
+    pending_notes = safe_get_count("SELECT COUNT(*) as count FROM resources WHERE is_approved = 0")
+    approved_notes = safe_get_count("SELECT COUNT(*) as count FROM resources WHERE is_approved = 1")
+    rejected_notes = safe_get_count("SELECT COUNT(*) as count FROM resources WHERE is_approved = -1") if mysql_enabled() else safe_get_count("SELECT COUNT(*) as count FROM resources WHERE is_approved = 2")
+
+    # Get total subjects, branches, syllabus files
+    total_subjects = safe_get_count("SELECT COUNT(*) as count FROM subjects")
+    total_branches = safe_get_count("SELECT COUNT(*) as count FROM branches")
+    total_syllabus = safe_get_count("SELECT COUNT(*) as count FROM syllabus")
+
+    # Get total stars awarded
+    total_stars = safe_get_count("SELECT SUM(stars) as count FROM users")
+
     return {
         'total_users': total_users,
         'total_notes': total_notes,
@@ -1492,9 +1904,15 @@ def get_stats():
         'admin_users': admin_count,
         'regular_users': regular_users,
         'total_resources': total_notes,
-        'pending_resources': 0,
+        'pending_resources': pending_notes,
+        'approved_resources': approved_notes,
+        'rejected_resources': rejected_notes,
         'total_messages': total_messages,
-        'unread_messages': unread_messages
+        'unread_messages': unread_messages,
+        'total_subjects': total_subjects,
+        'total_branches': total_branches,
+        'total_syllabus': total_syllabus,
+        'total_stars': total_stars
     }
 
 
@@ -2109,7 +2527,9 @@ def logout():
 def dashboard():
     user = get_user_by_email(session['user_email'])
     is_admin = user.get('role') == 'admin'
-    return render_template('dashboard.html', user=user, is_admin=is_admin)
+    schemes = get_schemes()
+    branches = get_branches()
+    return render_template('dashboard_v2.html', user=user, is_admin=is_admin, schemes=schemes, branches=branches)
 
 
 @app.route('/profile')
@@ -2274,6 +2694,33 @@ def contact():
 
     return render_template('contact.html')
 
+
+@app.route('/notes/search')
+def notes_search():
+    schemes = get_schemes()
+    branches = get_branches()
+    return render_template('notes_search.html', schemes=schemes, branches=branches)
+
+@app.route('/leaderboard')
+@login_required
+def leaderboard():
+    return render_template('leaderboard.html')
+
+@app.route('/syllabus')
+@login_required
+def syllabus():
+    schemes = get_schemes()
+    branches = get_branches()
+    return render_template('syllabus.html', schemes=schemes, branches=branches)
+
+@app.route('/placement')
+@login_required
+def placement():
+    return render_template('placement.html')
+
+@app.route('/founders')
+def founders():
+    return render_template('founders.html')
 
 @app.route('/notes')
 def notes_library():
@@ -2474,8 +2921,8 @@ def upload():
 
         user = get_user_by_email(session['user_email'])
         insert_query = f'''
-            INSERT INTO resources (subject_id, title, description, file_url, file_type, resource_type, uploaded_by, cloudinary_public_id)
-            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+            INSERT INTO resources (subject_id, title, description, file_url, file_type, resource_type, uploaded_by, cloudinary_public_id, is_approved)
+            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
         '''
         execute_query(insert_query, (
             subject_id,
@@ -2485,7 +2932,8 @@ def upload():
             file_type,
             resource_type,
             user['id'] if user else None,
-            cloudinary_public_id
+            cloudinary_public_id,
+            0  # Pending approval
         ), commit=True)
 
         resource = execute_query(f"SELECT id FROM resources WHERE file_url = {placeholder} ORDER BY id DESC LIMIT 1", (file_url,), fetchone=True)
@@ -2759,7 +3207,7 @@ def admin_upload_note():
 
         placeholder = get_placeholder()
 
-        # Get all relevant info for file path
+        # Get subject with is_lab flag
         subject = execute_query(f'''
             SELECT s.*, sch.name as scheme_name, sem.name as semester_name,
                    sem.semester_number, b.name as branch_name, b.code as branch_code,
@@ -2774,6 +3222,15 @@ def admin_upload_note():
 
         if not subject:
             flash('Subject not found!', 'danger')
+            return redirect(url_for('admin_upload_note'))
+
+        # Enforce Lab/Theory subject rules
+        is_lab_subject = subject.get('is_lab', 0)
+        if is_lab_subject and resource_type != 'lab_manual':
+            flash('Lab subjects can only have Lab Manual resources.', 'danger')
+            return redirect(url_for('admin_upload_note'))
+        if not is_lab_subject and resource_type == 'lab_manual':
+            flash('Theory subjects cannot have Lab Manual resources. Please select a lab subject.', 'danger')
             return redirect(url_for('admin_upload_note'))
 
         parts = [
@@ -2928,6 +3385,84 @@ def admin_delete_note(note_id):
         execute_query(f"DELETE FROM resources WHERE id = {placeholder}", (note_id,), commit=True)
         flash('Note deleted successfully!', 'success')
 
+    return redirect(url_for('admin_notes'))
+
+
+@app.route('/admin/notes/approve/<int:note_id>', methods=['POST'])
+@admin_required
+def admin_approve_note(note_id):
+    admin_id = session.get('user_id')
+    placeholder = get_placeholder()
+    
+    # Get note details
+    note = execute_query(f"SELECT * FROM resources WHERE id = {placeholder}", (note_id,), fetchone=True)
+    
+    if not note:
+        flash('Note not found!', 'danger')
+        return redirect(url_for('admin_notes'))
+    
+    # Approve the note
+    execute_query(f"UPDATE resources SET is_approved = 1 WHERE id = {placeholder}", (note_id,), commit=True)
+    
+    # Award stars to the uploader (only if not already approved)
+    if note['uploaded_by'] and note['is_approved'] == 0:
+        stars_to_award = 5  # Award 5 stars for each approved note
+        execute_query(f"UPDATE users SET stars = stars + {placeholder} WHERE id = {placeholder}", 
+                     (stars_to_award, note['uploaded_by']), commit=True)
+        
+        # Create notification for the user
+        execute_query(f'''
+            INSERT INTO notifications (user_id, title, message, type)
+            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})
+        ''', (note['uploaded_by'], 'Note Approved!', 
+              f'Your note "{note["title"]}" has been approved. You earned {stars_to_award} stars!',
+              'success'), commit=True)
+        
+        # Send email notification
+        user = execute_query(f"SELECT * FROM users WHERE id = {placeholder}", (note['uploaded_by'],), fetchone=True)
+        if user:
+            send_note_approved_email(user['email'], user['username'], note['title'])
+    
+    # Log activity
+    log_activity(admin_id=admin_id, action='Note approved', 
+                details=f'Note ID: {note_id}, Title: {note["title"]}',
+                ip_address=request.remote_addr)
+    
+    flash('Note approved successfully! Stars awarded to the uploader.', 'success')
+    return redirect(url_for('admin_notes'))
+
+
+@app.route('/admin/notes/reject/<int:note_id>', methods=['POST'])
+@admin_required
+def admin_reject_note(note_id):
+    admin_id = session.get('user_id')
+    placeholder = get_placeholder()
+    reason = request.form.get('reason', '')
+    
+    # Get note details
+    note = execute_query(f"SELECT * FROM resources WHERE id = {placeholder}", (note_id,), fetchone=True)
+    
+    if not note:
+        flash('Note not found!', 'danger')
+        return redirect(url_for('admin_notes'))
+    
+    # Reject the note (mark as -1 for MySQL, 2 for SQLite)
+    rejected_value = -1 if mysql_enabled() else 2
+    execute_query(f"UPDATE resources SET is_approved = {placeholder} WHERE id = {placeholder}", 
+                 (rejected_value, note_id), commit=True)
+    
+    # Send email notification to uploader
+    if note['uploaded_by']:
+        user = execute_query(f"SELECT * FROM users WHERE id = {placeholder}", (note['uploaded_by'],), fetchone=True)
+        if user:
+            send_note_rejected_email(user['email'], user['username'], note['title'], reason)
+    
+    # Log activity
+    log_activity(admin_id=admin_id, action='Note rejected', 
+                details=f'Note ID: {note_id}, Title: {note["title"]}, Reason: {reason}',
+                ip_address=request.remote_addr)
+    
+    flash('Note rejected. Uploader has been notified.', 'warning')
     return redirect(url_for('admin_notes'))
 
 
@@ -3620,6 +4155,666 @@ def debug_test_flow():
     }
     
     return render_template('debug_flow.html', flow=flow)
+
+
+# ========== PHASE 3: NEW API ENDPOINTS ==========
+
+# Dashboard API
+@app.route('/api/dashboard/stats')
+@login_required
+def api_dashboard_stats():
+    user = get_user_by_email(session['user_email'])
+    user_id = user['id']
+    
+    # Get user's download count
+    user_downloads = execute_query(f"SELECT COUNT(*) as count FROM user_downloads WHERE user_id = {get_placeholder()}", (user_id,), fetchone=True)
+    total_downloads = user_downloads['count'] if user_downloads else 0
+    
+    # Get user's stars
+    user_stars = user.get('stars', 0)
+    achievement_level = user.get('achievement_level', 'Beginner')
+    
+    # Get unread notifications count
+    notifications = execute_query(f"SELECT COUNT(*) as count FROM notifications WHERE user_id = {get_placeholder()} AND is_read = 0", (user_id,), fetchone=True)
+    unread_notifications = notifications['count'] if notifications else 0
+    
+    # Get total approved notes
+    total_notes = execute_query("SELECT COUNT(*) as count FROM resources WHERE is_approved = 1", fetchone=True)
+    total_approved_notes = total_notes['count'] if total_notes else 0
+    
+    # Get total syllabus files
+    total_syllabus = execute_query("SELECT COUNT(*) as count FROM syllabus", fetchone=True)
+    total_syllabus_count = total_syllabus['count'] if total_syllabus else 0
+    
+    return jsonify({
+        'stars': user_stars,
+        'achievement_level': achievement_level,
+        'notifications_count': unread_notifications,
+        'total_downloads': total_downloads,
+        'total_approved_notes': total_approved_notes,
+        'total_syllabus': total_syllabus_count
+    })
+
+
+# Leaderboard API
+@app.route('/api/leaderboard')
+@login_required
+def api_leaderboard():
+    limit = request.args.get('limit', 50, type=int)
+    leaders = execute_query(f'''
+        SELECT id, username, branch, semester, stars, achievement_level, profile_photo
+        FROM users
+        WHERE role = 'user' AND is_active = 1
+        ORDER BY stars DESC
+        LIMIT {get_placeholder()}
+    ''', (limit,), fetchall=True)
+    
+    result = []
+    for idx, leader in enumerate(leaders, 1):
+        result.append({
+            'rank': idx,
+            'id': leader['id'],
+            'name': leader['username'],
+            'branch': leader['branch'],
+            'stars': leader['stars'],
+            'achievement_level': leader['achievement_level'],
+            'profile_photo': leader['profile_photo']
+        })
+    
+    return jsonify(result)
+
+
+# Notifications API
+@app.route('/api/notifications')
+@login_required
+def api_notifications():
+    user = get_user_by_email(session['user_email'])
+    user_id = user['id']
+    
+    notifications = execute_query(f'''
+        SELECT * FROM notifications
+        WHERE user_id = {get_placeholder()}
+        ORDER BY created_at DESC
+        LIMIT 50
+    ''', (user_id,), fetchall=True)
+    
+    return jsonify(notifications)
+
+
+@app.route('/api/notifications/mark-read', methods=['POST'])
+@login_required
+def api_notifications_mark_read():
+    user = get_user_by_email(session['user_email'])
+    user_id = user['id']
+    notification_id = request.form.get('notification_id', type=int)
+    
+    if notification_id:
+        execute_query(f"UPDATE notifications SET is_read = 1 WHERE id = {get_placeholder()} AND user_id = {get_placeholder()}", 
+                     (notification_id, user_id), commit=True)
+    else:
+        execute_query(f"UPDATE notifications SET is_read = 1 WHERE user_id = {get_placeholder()}", (user_id,), commit=True)
+    
+    return jsonify({'success': True})
+
+
+@app.route('/api/notifications/unread-count')
+@login_required
+def api_notifications_unread_count():
+    user = get_user_by_email(session['user_email'])
+    user_id = user['id']
+    
+    result = execute_query(f"SELECT COUNT(*) as count FROM notifications WHERE user_id = {get_placeholder()} AND is_read = 0", 
+                          (user_id,), fetchone=True)
+    count = result['count'] if result else 0
+    
+    return jsonify({'count': count})
+
+
+# Search API
+@app.route('/api/search')
+@login_required
+def api_search():
+    query = request.args.get('q', '').strip()
+    subject_code = request.args.get('subject_code', '').strip()
+    subject_name = request.args.get('subject_name', '').strip()
+    branch = request.args.get('branch', '').strip()
+    semester = request.args.get('semester', type=int)
+    scheme = request.args.get('scheme', type=int)
+    resource_type = request.args.get('resource_type', '').strip()
+    
+    placeholder = get_placeholder()
+    sql = '''
+        SELECT r.*, s.name as subject_name, s.code as subject_code, b.name as branch_name, sem.name as semester_name
+        FROM resources r
+        LEFT JOIN subjects s ON r.subject_id = s.id
+        LEFT JOIN branches b ON s.branch_id = b.id
+        LEFT JOIN semesters sem ON s.semester_id = sem.id
+        WHERE r.is_approved = 1
+    '''
+    params = []
+    
+    if query:
+        sql += f" AND (r.title LIKE {placeholder} OR r.description LIKE {placeholder})"
+        params.extend([f'%{query}%', f'%{query}%'])
+    if subject_code:
+        sql += f" AND s.code LIKE {placeholder}"
+        params.append(f'%{subject_code}%')
+    if subject_name:
+        sql += f" AND s.name LIKE {placeholder}"
+        params.append(f'%{subject_name}%')
+    if branch:
+        sql += f" AND b.name LIKE {placeholder}"
+        params.append(f'%{branch}%')
+    if semester:
+        sql += f" AND sem.semester_number = {placeholder}"
+        params.append(semester)
+    if scheme:
+        sql += f" AND s.scheme_id = {placeholder}"
+        params.append(scheme)
+    if resource_type:
+        sql += f" AND r.resource_type = {placeholder}"
+        params.append(resource_type)
+    
+    sql += " ORDER BY r.upload_date DESC LIMIT 100"
+    
+    results = execute_query(sql, tuple(params), fetchall=True)
+    return jsonify(results)
+
+
+# Syllabus API
+@app.route('/api/syllabus/subjects')
+@login_required
+def api_syllabus_subjects():
+    scheme_id = request.args.get('scheme_id', type=int)
+    semester_id = request.args.get('semester_id', type=int)
+    branch_id = request.args.get('branch_id', type=int)
+    
+    if not scheme_id or not semester_id:
+        return jsonify([])
+    
+    placeholder = get_placeholder()
+    sql = '''
+        SELECT s.id, s.code, s.name
+        FROM subjects s
+        WHERE s.scheme_id = %s AND s.semester_id = %s
+    ''' if mysql_enabled() else '''
+        SELECT s.id, s.code, s.name
+        FROM subjects s
+        WHERE s.scheme_id = ? AND s.semester_id = ?
+    '''
+    params = [scheme_id, semester_id]
+    
+    if branch_id:
+        sql += " AND (s.branch_id = %s OR s.is_common = 1)" if mysql_enabled() else " AND (s.branch_id = ? OR s.is_common = 1)"
+        params.append(branch_id)
+    
+    sql += " ORDER BY s.code"
+    
+    subjects = execute_query(sql, tuple(params), fetchall=True)
+    return jsonify(subjects)
+
+
+@app.route('/api/syllabus/<int:subject_id>')
+@login_required
+def api_syllabus_get(subject_id):
+    placeholder = get_placeholder()
+    syllabus = execute_query(f"SELECT * FROM syllabus WHERE subject_id = {placeholder}", (subject_id,), fetchone=True)
+    return jsonify(syllabus) if syllabus else jsonify(None)
+
+
+# Report Note API
+@app.route('/api/report-note', methods=['POST'])
+@login_required
+def api_report_note():
+    user = get_user_by_email(session['user_email'])
+    resource_id = request.form.get('resource_id', type=int)
+    report_type = request.form.get('report_type', '').strip()
+    description = request.form.get('description', '').strip()
+    
+    if not resource_id or not report_type:
+        return jsonify({'success': False, 'message': 'Missing required fields'})
+    
+    placeholder = get_placeholder()
+    execute_query(f'''
+        INSERT INTO report_notes (resource_id, reported_by, report_type, description)
+        VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})
+    ''', (resource_id, user['id'], report_type, description), commit=True)
+    
+    return jsonify({'success': True})
+
+
+# Password Reset API
+@app.route('/api/forgot-password', methods=['POST'])
+def api_forgot_password():
+    email = request.form.get('email', '').strip()
+    
+    if not email:
+        return jsonify({'success': False, 'message': 'Email is required'})
+    
+    user = get_user_by_email(email)
+    if not user:
+        return jsonify({'success': True, 'message': 'If that email exists, a reset link has been sent.'})
+    
+    # Generate reset token
+    reset_token = str(uuid4())
+    expires_at = datetime.now() + timedelta(hours=1)
+    
+    placeholder = get_placeholder()
+    execute_query(f'''
+        INSERT INTO password_reset_tokens (user_id, token, expires_at)
+        VALUES ({placeholder}, {placeholder}, {placeholder})
+    ''', (user['id'], reset_token, expires_at), commit=True)
+    
+    # Send email
+    send_password_reset_email(user['email'], user['username'], reset_token)
+    
+    return jsonify({'success': True, 'message': 'If that email exists, a reset link has been sent.'})
+
+
+@app.route('/api/reset-password', methods=['POST'])
+def api_reset_password():
+    token = request.form.get('token', '').strip()
+    new_password = request.form.get('new_password', '').strip()
+    confirm_password = request.form.get('confirm_password', '').strip()
+    
+    if not token or not new_password or not confirm_password:
+        return jsonify({'success': False, 'message': 'All fields are required'})
+    
+    if new_password != confirm_password:
+        return jsonify({'success': False, 'message': 'Passwords do not match'})
+    
+    # Find valid token
+    placeholder = get_placeholder()
+    token_record = execute_query(f'''
+        SELECT * FROM password_reset_tokens 
+        WHERE token = {placeholder} AND used = 0 AND expires_at > NOW()
+    ''', (token,), fetchone=True)
+    
+    if not token_record:
+        return jsonify({'success': False, 'message': 'Invalid or expired reset token'})
+    
+    # Update password
+    hashed_password = generate_password_hash(new_password)
+    execute_query(f"UPDATE users SET password = {placeholder} WHERE id = {placeholder}", 
+                 (hashed_password, token_record['user_id']), commit=True)
+    
+    # Mark token as used
+    execute_query(f"UPDATE password_reset_tokens SET used = 1 WHERE id = {placeholder}", 
+                 (token_record['id'],), commit=True)
+    
+    return jsonify({'success': True, 'message': 'Password reset successful'})
+
+
+# Feedback API
+@app.route('/api/feedback', methods=['POST'])
+def api_feedback():
+    name = request.form.get('name', '').strip()
+    email = request.form.get('email', '').strip()
+    subject = request.form.get('subject', '').strip()
+    message = request.form.get('message', '').strip()
+    
+    if not all([name, email, subject, message]):
+        return jsonify({'success': False, 'message': 'All fields are required'})
+    
+    placeholder = get_placeholder()
+    execute_query(f'''
+        INSERT INTO feedback (name, email, subject, message)
+        VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})
+    ''', (name, email, subject, message), commit=True)
+    
+    # Get feedback ID
+    feedback = execute_query(f"SELECT id FROM feedback WHERE email = {placeholder} ORDER BY id DESC LIMIT 1", (email,), fetchone=True)
+    feedback_id = feedback['id'] if feedback else 0
+    
+    # Send notification email
+    send_feedback_notification_email(feedback_id, name, email, subject, message)
+    
+    return jsonify({'success': True, 'message': 'Feedback submitted successfully'})
+
+
+# ========== PHASE 5: ADMIN API ENDPOINTS ==========
+
+# Admin: Activity Logs
+@app.route('/admin/api/activity-logs')
+@admin_required
+def admin_api_activity_logs():
+    page = request.args.get('page', 1, type=int)
+    per_page = 50
+    offset = (page - 1) * per_page
+    
+    admin_id = session.get('user_id')
+    
+    # Get total count
+    total = execute_query("SELECT COUNT(*) as count FROM activity_logs", fetchone=True)
+    total_count = total['count'] if total else 0
+    
+    # Get logs
+    logs = execute_query(f'''
+        SELECT al.*, u.username as admin_name
+        FROM activity_logs al
+        LEFT JOIN users u ON al.admin_id = u.id
+        ORDER BY al.created_at DESC
+        LIMIT {get_placeholder()} OFFSET {get_placeholder()}
+    ''', (per_page, offset), fetchall=True)
+    
+    return jsonify({
+        'logs': logs,
+        'total': total_count,
+        'page': page,
+        'per_page': per_page
+    })
+
+
+# Admin: Report Notes
+@app.route('/admin/report-notes')
+@admin_required
+def admin_report_notes():
+    status = request.args.get('status', 'pending')
+    placeholder = get_placeholder()
+    
+    reports = execute_query(f'''
+        SELECT rn.*, r.title as resource_title, r.file_url,
+               u.username as reported_by_name
+        FROM report_notes rn
+        LEFT JOIN resources r ON rn.resource_id = r.id
+        LEFT JOIN users u ON rn.reported_by = u.id
+        WHERE rn.status = {placeholder}
+        ORDER BY rn.created_at DESC
+    ''', (status,), fetchall=True)
+    
+    return render_template('admin_report_notes.html', reports=reports, status=status)
+
+
+@app.route('/admin/report-notes/resolve/<int:report_id>', methods=['POST'])
+@admin_required
+def admin_resolve_report(report_id):
+    admin_id = session.get('user_id')
+    action = request.form.get('action', 'resolved')
+    
+    placeholder = get_placeholder()
+    execute_query(f'''
+        UPDATE report_notes
+        SET status = {placeholder}, resolved_by = {placeholder}, resolved_at = NOW()
+        WHERE id = {placeholder}
+    ''', (action, admin_id, report_id), commit=True)
+    
+    log_activity(admin_id=admin_id, action=f'Report {action}', 
+                details=f'Report ID: {report_id}', 
+                ip_address=request.remote_addr)
+    
+    flash(f'Report marked as {action}!', 'success')
+    return redirect(url_for('admin_report_notes'))
+
+
+# Admin: Feedback Management
+@app.route('/admin/feedback')
+@admin_required
+def admin_feedback():
+    status = request.args.get('status', 'all')
+    placeholder = get_placeholder()
+    
+    sql = "SELECT * FROM feedback"
+    params = []
+    
+    if status != 'all':
+        sql += f" WHERE status = {placeholder}"
+        params.append(status)
+    
+    sql += " ORDER BY created_at DESC"
+    
+    feedbacks = execute_query(sql, tuple(params), fetchall=True)
+    return render_template('admin_feedback.html', feedbacks=feedbacks, status=status)
+
+
+@app.route('/admin/feedback/mark-read/<int:feedback_id>', methods=['POST'])
+@admin_required
+def admin_feedback_mark_read(feedback_id):
+    admin_id = session.get('user_id')
+    placeholder = get_placeholder()
+    execute_query(f"UPDATE feedback SET status = 'read' WHERE id = {placeholder}", (feedback_id,), commit=True)
+    
+    log_activity(admin_id=admin_id, action='Feedback marked as read', 
+                details=f'Feedback ID: {feedback_id}',
+                ip_address=request.remote_addr)
+    
+    return jsonify({'success': True})
+
+
+@app.route('/admin/feedback/delete/<int:feedback_id>', methods=['POST'])
+@admin_required
+def admin_feedback_delete(feedback_id):
+    admin_id = session.get('user_id')
+    placeholder = get_placeholder()
+    execute_query(f"DELETE FROM feedback WHERE id = {placeholder}", (feedback_id,), commit=True)
+    
+    log_activity(admin_id=admin_id, action='Feedback deleted', 
+                details=f'Feedback ID: {feedback_id}',
+                ip_address=request.remote_addr)
+    
+    flash('Feedback deleted!', 'success')
+    return redirect(url_for('admin_feedback'))
+
+
+# Admin: User Management
+@app.route('/admin/users/toggle/<int:user_id>', methods=['POST'])
+@admin_required
+def admin_toggle_user(user_id):
+    admin_id = session.get('user_id')
+    placeholder = get_placeholder()
+    
+    user = execute_query(f"SELECT * FROM users WHERE id = {placeholder}", (user_id,), fetchone=True)
+    if not user:
+        flash('User not found!', 'danger')
+        return redirect(url_for('admin_users'))
+    
+    if user['role'] == 'admin':
+        flash('Cannot deactivate admin users!', 'danger')
+        return redirect(url_for('admin_users'))
+    
+    new_status = 0 if user['is_active'] else 1
+    execute_query(f"UPDATE users SET is_active = {placeholder} WHERE id = {placeholder}", 
+                 (new_status, user_id), commit=True)
+    
+    action = 'activated' if new_status else 'deactivated'
+    log_activity(admin_id=admin_id, action=f'User {action}', 
+                details=f'User: {user["username"]} (ID: {user_id})',
+                ip_address=request.remote_addr)
+    
+    flash(f'User {action} successfully!', 'success')
+    return redirect(url_for('admin_users'))
+
+
+@app.route('/admin/users/delete/<int:user_id>', methods=['POST'])
+@admin_required
+def admin_delete_user(user_id):
+    admin_id = session.get('user_id')
+    placeholder = get_placeholder()
+    
+    user = execute_query(f"SELECT * FROM users WHERE id = {placeholder}", (user_id,), fetchone=True)
+    if not user:
+        flash('User not found!', 'danger')
+        return redirect(url_for('admin_users'))
+    
+    if user['role'] == 'admin':
+        flash('Cannot delete admin users!', 'danger')
+        return redirect(url_for('admin_users'))
+    
+    execute_query(f"DELETE FROM users WHERE id = {placeholder}", (user_id,), commit=True)
+    
+    log_activity(admin_id=admin_id, action='User deleted', 
+                details=f'User: {user["username"]} (ID: {user_id})',
+                ip_address=request.remote_addr)
+    
+    flash('User deleted successfully!', 'success')
+    return redirect(url_for('admin_users'))
+
+
+# Admin: Stream Management
+@app.route('/admin/streams')
+@admin_required
+def admin_streams():
+    streams = execute_query("SELECT * FROM streams ORDER BY name", fetchall=True)
+    return render_template('admin_streams.html', streams=streams)
+
+@app.route('/admin/streams/add', methods=['POST'])
+@admin_required
+def admin_add_stream():
+    stream_name = request.form.get('stream_name', '').strip()
+    stream_code = request.form.get('stream_code', '').strip().lower().replace(' ', '_')
+    description = request.form.get('description', '').strip()
+    
+    if not stream_name or not stream_code:
+        flash('Stream name and code are required!', 'danger')
+        return redirect(url_for('admin_streams'))
+    
+    placeholder = get_placeholder()
+    try:
+        execute_query(f"INSERT INTO streams (name, code, description) VALUES ({placeholder}, {placeholder}, {placeholder})",
+                     (stream_name, stream_code, description), commit=True)
+        flash('Stream added successfully!', 'success')
+    except Exception as e:
+        flash(f'Error adding stream: {e}', 'danger')
+    
+    return redirect(url_for('admin_streams'))
+
+@app.route('/admin/streams/update', methods=['POST'])
+@admin_required
+def admin_update_stream():
+    stream_id = request.form.get('stream_id', type=int)
+    stream_name = request.form.get('stream_name', '').strip()
+    stream_code = request.form.get('stream_code', '').strip().lower().replace(' ', '_')
+    description = request.form.get('description', '').strip()
+    
+    if not stream_id or not stream_name or not stream_code:
+        flash('Stream ID, name and code are required!', 'danger')
+        return redirect(url_for('admin_streams'))
+    
+    placeholder = get_placeholder()
+    try:
+        execute_query(f"UPDATE streams SET name = {placeholder}, code = {placeholder}, description = {placeholder} WHERE id = {placeholder}",
+                     (stream_name, stream_code, description, stream_id), commit=True)
+        flash('Stream updated successfully!', 'success')
+    except Exception as e:
+        flash(f'Error updating stream: {e}', 'danger')
+    
+    return redirect(url_for('admin_streams'))
+
+@app.route('/admin/streams/delete', methods=['POST'])
+@admin_required
+def admin_delete_stream():
+    stream_id = request.form.get('stream_id', type=int)
+    
+    if not stream_id:
+        flash('Stream ID is required!', 'danger')
+        return redirect(url_for('admin_streams'))
+    
+    placeholder = get_placeholder()
+    try:
+        execute_query(f"DELETE FROM streams WHERE id = {placeholder}", (stream_id,), commit=True)
+        flash('Stream deleted successfully!', 'success')
+    except Exception as e:
+        flash(f'Error deleting stream: {e}', 'danger')
+    
+    return redirect(url_for('admin_streams'))
+
+# Admin: Syllabus Management
+@app.route('/admin/syllabus')
+@admin_required
+def admin_syllabus():
+    return render_template('admin_syllabus.html')
+
+
+@app.route('/admin/syllabus/upload', methods=['GET', 'POST'])
+@admin_required
+def admin_syllabus_upload():
+    if request.method == 'POST':
+        subject_id = request.form.get('subject_id', type=int)
+        course_description = request.form.get('course_description', '')
+        course_outcomes = request.form.get('course_outcomes', '')
+        module1 = request.form.get('module1', '')
+        module2 = request.form.get('module2', '')
+        module3 = request.form.get('module3', '')
+        module4 = request.form.get('module4', '')
+        module5 = request.form.get('module5', '')
+        text_books = request.form.get('text_books', '')
+        reference_books = request.form.get('reference_books', '')
+        file = request.files.get('file')
+        
+        if not subject_id:
+            flash('Subject is required!', 'danger')
+            return redirect(url_for('admin_syllabus_upload'))
+        
+        file_url = ''
+        file_type = ''
+        cloudinary_public_id = None
+        
+        if file and file.filename:
+            try:
+                file_path, file_url, file_type = save_upload_file(file, ['syllabus'])
+                cld_url, cld_public_id = upload_to_cloudinary(file_path)
+                if cld_url:
+                    file_url = cld_url
+                    cloudinary_public_id = cld_public_id
+                    os.remove(file_path)
+            except Exception as e:
+                flash(f'File upload error: {e}', 'danger')
+                return redirect(url_for('admin_syllabus_upload'))
+        
+        user = get_user_by_email(session['user_email'])
+        placeholder = get_placeholder()
+        execute_query(f'''
+            INSERT INTO syllabus (subject_id, file_url, file_type, cloudinary_public_id,
+                                 course_description, course_outcomes, module1, module2, module3,
+                                 module4, module5, text_books, reference_books, uploaded_by)
+            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+        ''', (subject_id, file_url, file_type, cloudinary_public_id, course_description,
+              course_outcomes, module1, module2, module3, module4, module5,
+              text_books, reference_books, user['id']), commit=True)
+        
+        flash('Syllabus uploaded successfully!', 'success')
+        return redirect(url_for('admin_syllabus'))
+    
+    # GET request - show form
+    schemes = get_schemes()
+    semesters = get_semesters()
+    branches = get_branches()
+    subjects = get_subjects()
+    
+    return render_template('admin_syllabus_upload.html',
+                         schemes=schemes, semesters=semesters,
+                         branches=branches, subjects=subjects)
+
+
+# ========== PWA ROUTES ==========
+
+@app.route('/manifest.json')
+def manifest():
+    return jsonify({
+        'name': 'StudyNova',
+        'short_name': 'StudyNova',
+        'description': 'Your Ultimate Academic Resource Platform',
+        'start_url': '/',
+        'display': 'standalone',
+        'background_color': '#ffffff',
+        'theme_color': '#4e73df',
+        'icons': [
+            {
+                'src': '/static/images/icon-192.png',
+                'sizes': '192x192',
+                'type': 'image/png'
+            },
+            {
+                'src': '/static/images/icon-512.png',
+                'sizes': '512x512',
+                'type': 'image/png'
+            }
+        ]
+    })
+
+
+@app.route('/sw.js')
+def service_worker():
+    return app.send_static_file('sw.js')
 
 
 if __name__ == '__main__':

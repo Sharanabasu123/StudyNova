@@ -1,0 +1,350 @@
+{% extends "layout.html" %}
+
+{% block title %}Advanced Search - StudyNova{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Search Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-primary text-white">
+                <div class="card-body">
+                    <h2 class="mb-0"><i class="fas fa-search me-2"></i>Advanced Search</h2>
+                    <p class="mb-0 mt-2">Search across all notes, resources, and study materials</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Search Filters</h5>
+                </div>
+                <div class="card-body">
+                    <form id="searchForm" onsubmit="performSearch(event)">
+                        <!-- Keyword Search -->
+                        <div class="mb-3">
+                            <label class="form-label">Keyword Search</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" class="form-control" id="keyword" placeholder="Search by title, description...">
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <!-- Subject Code -->
+                            <div class="col-md-6 col-lg-3">
+                                <label class="form-label">Subject Code</label>
+                                <input type="text" class="form-control" id="subject_code" placeholder="e.g., 1BMATS101">
+                            </div>
+
+                            <!-- Subject Name -->
+                            <div class="col-md-6 col-lg-3">
+                                <label class="form-label">Subject Name</label>
+                                <input type="text" class="form-control" id="subject_name" placeholder="e.g., Mathematics">
+                            </div>
+
+                            <!-- Scheme -->
+                            <div class="col-md-6 col-lg-3">
+                                <label class="form-label">Scheme</label>
+                                <select class="form-select" id="scheme">
+                                    <option value="">All Schemes</option>
+                                    {% for scheme in schemes %}
+                                    <option value="{{ scheme.id }}">{{ scheme.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Semester -->
+                            <div class="col-md-6 col-lg-3">
+                                <label class="form-label">Semester</label>
+                                <select class="form-select" id="semester">
+                                    <option value="">All Semesters</option>
+                                    {% for i in range(1, 9) %}
+                                    <option value="{{ i }}">{{ i }}{% if i == 1 %}st{% elif i == 2 %}nd{% elif i == 3 %}rd{% else %}th{% endif %} Semester</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Branch -->
+                            <div class="col-md-6 col-lg-3">
+                                <label class="form-label">Branch</label>
+                                <select class="form-select" id="branch">
+                                    <option value="">All Branches</option>
+                                    {% for branch in branches %}
+                                    <option value="{{ branch.name }}">{{ branch.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Resource Type -->
+                            <div class="col-md-6 col-lg-3">
+                                <label class="form-label">Resource Type</label>
+                                <select class="form-select" id="resource_type">
+                                    <option value="">All Types</option>
+                                    <option value="module1">Module 1 Notes</option>
+                                    <option value="module2">Module 2 Notes</option>
+                                    <option value="module3">Module 3 Notes</option>
+                                    <option value="module4">Module 4 Notes</option>
+                                    <option value="module5">Module 5 Notes</option>
+                                    <option value="important_questions">Important Questions</option>
+                                    <option value="pyq">Previous Year Papers</option>
+                                    <option value="solutions">Solutions</option>
+                                    <option value="passing_package">Passing Package</option>
+                                    <option value="lab_manual">Lab Manual</option>
+                                </select>
+                            </div>
+
+                            <!-- Sort By -->
+                            <div class="col-md-6 col-lg-3">
+                                <label class="form-label">Sort By</label>
+                                <select class="form-select" id="sort_by">
+                                    <option value="date_desc">Newest First</option>
+                                    <option value="date_asc">Oldest First</option>
+                                    <option value="downloads_desc">Most Downloaded</option>
+                                    <option value="views_desc">Most Viewed</option>
+                                </select>
+                            </div>
+
+                            <!-- Search Button -->
+                            <div class="col-md-6 col-lg-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-search me-2"></i>Search
+                                </button>
+                            </div>
+
+                            <!-- Clear Button -->
+                            <div class="col-md-6 col-lg-3 d-flex align-items-end">
+                                <button type="button" class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                                    <i class="fas fa-times me-2"></i>Clear Filters
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Results -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>Search Results
+                        <span id="resultsCount" class="badge bg-primary ms-2">0</span>
+                    </h5>
+                    <div id="loadingIndicator" class="spinner-border spinner-border-sm text-primary" style="display: none;" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="searchResults" class="row g-3">
+                        <!-- Initial message -->
+                        <div class="col-12 text-center py-5">
+                            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Use the filters above to search for resources</h5>
+                            <p class="text-muted">Try searching by subject code, name, or keyword</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Store search parameters
+let currentSearchParams = {};
+
+// Perform search
+function performSearch(event) {
+    event.preventDefault();
+    
+    // Collect search parameters
+    const params = new URLSearchParams();
+    
+    const keyword = document.getElementById('keyword').value.trim();
+    const subjectCode = document.getElementById('subject_code').value.trim();
+    const subjectName = document.getElementById('subject_name').value.trim();
+    const scheme = document.getElementById('scheme').value;
+    const semester = document.getElementById('semester').value;
+    const branch = document.getElementById('branch').value;
+    const resourceType = document.getElementById('resource_type').value;
+    const sortBy = document.getElementById('sort_by').value;
+    
+    if (keyword) params.append('q', keyword);
+    if (subjectCode) params.append('subject_code', subjectCode);
+    if (subjectName) params.append('subject_name', subjectName);
+    if (scheme) params.append('scheme', scheme);
+    if (semester) params.append('semester', semester);
+    if (branch) params.append('branch', branch);
+    if (resourceType) params.append('resource_type', resourceType);
+    
+    // Show loading
+    document.getElementById('loadingIndicator').style.display = 'block';
+    document.getElementById('searchResults').innerHTML = `
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-3 text-muted">Searching...</p>
+        </div>
+    `;
+    
+    // Fetch results
+    fetch(`/api/search?${params.toString()}`)
+        .then(res => res.json())
+        .then(data => {
+            displayResults(data);
+        })
+        .catch(err => {
+            console.error('Search error:', err);
+            document.getElementById('searchResults').innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                    <h5 class="text-danger">Error performing search</h5>
+                    <p class="text-muted">Please try again</p>
+                </div>
+            `;
+        })
+        .finally(() => {
+            document.getElementById('loadingIndicator').style.display = 'none';
+        });
+}
+
+// Display search results
+function displayResults(results) {
+    const resultsContainer = document.getElementById('searchResults');
+    const resultsCount = document.getElementById('resultsCount');
+    
+    resultsCount.textContent = results.length;
+    
+    if (results.length === 0) {
+        resultsContainer.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No results found</h5>
+                <p class="text-muted">Try adjusting your search filters</p>
+            </div>
+        `;
+        return;
+    }
+    
+    resultsContainer.innerHTML = results.map(resource => {
+        const ext = resource.file_url.split('.').pop() || 'pdf';
+        const icon = getFileIcon(ext);
+        const resourceType = getResourceTypeLabel(resource.resource_type);
+        const date = new Date(resource.upload_date).toLocaleDateString();
+        
+        return `
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 hover-lift">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="flex-grow-1">
+                                <h6 class="card-title text-primary mb-1">${resource.subject_code || 'N/A'}</h6>
+                                <p class="card-text small text-muted mb-2">${resource.subject_name || 'Unknown Subject'}</p>
+                            </div>
+                            <span class="badge bg-info">${resourceType}</span>
+                        </div>
+                        
+                        <h6 class="card-title">${resource.title}</h6>
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar me-1"></i>${date}
+                            </small>
+                            <small class="text-muted">
+                                <i class="fas fa-download me-1"></i>${resource.download_count || 0}
+                            </small>
+                        </div>
+                        
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="/preview/${resource.file_url}" class="btn btn-outline-primary btn-sm" target="_blank">
+                                <i class="fas fa-eye me-1"></i>Preview
+                            </a>
+                            <a href="/download/${resource.file_url}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-download me-1"></i>Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Clear all filters
+function clearFilters() {
+    document.getElementById('keyword').value = '';
+    document.getElementById('subject_code').value = '';
+    document.getElementById('subject_name').value = '';
+    document.getElementById('scheme').value = '';
+    document.getElementById('semester').value = '';
+    document.getElementById('branch').value = '';
+    document.getElementById('resource_type').value = '';
+    document.getElementById('sort_by').value = 'date_desc';
+    
+    document.getElementById('searchResults').innerHTML = `
+        <div class="col-12 text-center py-5">
+            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">Use the filters above to search for resources</h5>
+            <p class="text-muted">Try searching by subject code, name, or keyword</p>
+        </div>
+    `;
+    document.getElementById('resultsCount').textContent = '0';
+}
+
+// Helper functions (same as in other pages)
+function getFileIcon(extension) {
+    const icons = {
+        'pdf': 'fas fa-file-pdf text-danger',
+        'ppt': 'fas fa-file-powerpoint text-warning',
+        'pptx': 'fas fa-file-powerpoint text-warning',
+        'doc': 'fas fa-file-word text-primary',
+        'docx': 'fas fa-file-word text-primary',
+        'zip': 'fas fa-file-archive text-secondary'
+    };
+    return icons[extension.toLowerCase()] || 'fas fa-file text-muted';
+}
+
+function getResourceTypeLabel(resourceType) {
+    const labels = {
+        'module1': 'Module 1',
+        'module2': 'Module 2',
+        'module3': 'Module 3',
+        'module4': 'Module 4',
+        'module5': 'Module 5',
+        'important_questions': 'Important Qs',
+        'pyq': 'Question Papers',
+        'solutions': 'Solutions',
+        'passing_package': 'Passing Pkg',
+        'lab_manual': 'Lab Manual'
+    };
+    return labels[resourceType] || resourceType;
+}
+
+// Auto-search on page load if there are query parameters
+window.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.toString()) {
+        // Populate filters from URL params
+        if (urlParams.get('q')) document.getElementById('keyword').value = urlParams.get('q');
+        if (urlParams.get('subject_code')) document.getElementById('subject_code').value = urlParams.get('subject_code');
+        if (urlParams.get('subject_name')) document.getElementById('subject_name').value = urlParams.get('subject_name');
+        if (urlParams.get('scheme')) document.getElementById('scheme').value = urlParams.get('scheme');
+        if (urlParams.get('semester')) document.getElementById('semester').value = urlParams.get('semester');
+        if (urlParams.get('branch')) document.getElementById('branch').value = urlParams.get('branch');
+        if (urlParams.get('resource_type')) document.getElementById('resource_type').value = urlParams.get('resource_type');
+        
+        // Auto-perform search
+        performSearch(new Event('submit'));
+    }
+});
+</script>
+{% endblock %}

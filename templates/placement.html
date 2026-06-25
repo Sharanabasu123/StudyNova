@@ -1,0 +1,269 @@
+{% extends "layout.html" %}
+
+{% block title %}Placement Preparation - StudyNova{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Placement Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-primary text-white">
+                <div class="card-body">
+                    <h2 class="mb-0"><i class="fas fa-briefcase me-2"></i>Placement Preparation</h2>
+                    <p class="mb-0 mt-2">Comprehensive resources to ace your campus placements</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Categories Grid -->
+    <div class="row g-4">
+        <!-- Aptitude -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 hover-lift">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-calculator fa-3x text-primary"></i>
+                    </div>
+                    <h5 class="card-title">Aptitude</h5>
+                    <p class="card-text text-muted">Quantitative aptitude, logical reasoning, and numerical ability</p>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="searchResources('aptitude')">
+                            <i class="fas fa-search me-1"></i>Search
+                        </button>
+                        <a href="/notes/search?resource_type=aptitude" class="btn btn-primary btn-sm" target="_blank">
+                            <i class="fas fa-external-link-alt me-1"></i>View All
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reasoning -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 hover-lift">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-brain fa-3x text-success"></i>
+                    </div>
+                    <h5 class="card-title">Reasoning</h5>
+                    <p class="card-text text-muted">Verbal, non-verbal reasoning and analytical skills</p>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="searchResources('reasoning')">
+                            <i class="fas fa-search me-1"></i>Search
+                        </button>
+                        <a href="/notes/search?resource_type=reasoning" class="btn btn-primary btn-sm" target="_blank">
+                            <i class="fas fa-external-link-alt me-1"></i>View All
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Interview -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 hover-lift">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-code fa-3x text-info"></i>
+                    </div>
+                    <h5 class="card-title">Technical Interview</h5>
+                    <p class="card-text text-muted">Programming, data structures, algorithms, and technical concepts</p>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="searchResources('technical')">
+                            <i class="fas fa-search me-1"></i>Search
+                        </button>
+                        <a href="/notes/search?resource_type=technical" class="btn btn-primary btn-sm" target="_blank">
+                            <i class="fas fa-external-link-alt me-1"></i>View All
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HR Interview -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 hover-lift">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-users fa-3x text-warning"></i>
+                    </div>
+                    <h5 class="card-title">HR Interview</h5>
+                    <p class="card-text text-muted">Common HR questions, behavioral skills, and interview tips</p>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="searchResources('hr')">
+                            <i class="fas fa-search me-1"></i>Search
+                        </button>
+                        <a href="/notes/search?resource_type=hr" class="btn btn-primary btn-sm" target="_blank">
+                            <i class="fas fa-external-link-alt me-1"></i>View All
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resume Building -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 hover-lift">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-file-alt fa-3x text-danger"></i>
+                    </div>
+                    <h5 class="card-title">Resume Building</h5>
+                    <p class="card-text text-muted">Resume templates, formats, and writing guidelines</p>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="searchResources('resume')">
+                            <i class="fas fa-search me-1"></i>Search
+                        </button>
+                        <a href="/notes/search?resource_type=resume" class="btn btn-primary btn-sm" target="_blank">
+                            <i class="fas fa-external-link-alt me-1"></i>View All
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Communication Skills -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 hover-lift">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-comments fa-3x text-secondary"></i>
+                    </div>
+                    <h5 class="card-title">Communication Skills</h5>
+                    <p class="card-text text-muted">English communication, presentation skills, and soft skills</p>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="searchResources('communication')">
+                            <i class="fas fa-search me-1"></i>Search
+                        </button>
+                        <a href="/notes/search?resource_type=communication" class="btn btn-primary btn-sm" target="_blank">
+                            <i class="fas fa-external-link-alt me-1"></i>View All
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Modal -->
+    <div class="modal fade" id="searchModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Search Placement Resources</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="placementSearchForm" onsubmit="performPlacementSearch(event)">
+                        <div class="mb-3">
+                            <label class="form-label">Category</label>
+                            <input type="text" class="form-control" id="placementCategory" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Keyword</label>
+                            <input type="text" class="form-control" id="placementKeyword" placeholder="Search by keyword...">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Search</button>
+                    </form>
+                    <div id="placementSearchResults" class="mt-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Search resources by category
+function searchResources(category) {
+    document.getElementById('placementCategory').value = category;
+    document.getElementById('placementKeyword').value = '';
+    document.getElementById('placementSearchResults').innerHTML = '';
+    
+    const modal = new bootstrap.Modal(document.getElementById('searchModal'));
+    modal.show();
+}
+
+// Perform placement search
+function performPlacementSearch(event) {
+    event.preventDefault();
+    
+    const category = document.getElementById('placementCategory').value;
+    const keyword = document.getElementById('placementKeyword').value.trim();
+    
+    if (!keyword) {
+        alert('Please enter a search keyword');
+        return;
+    }
+    
+    const params = new URLSearchParams();
+    params.append('q', keyword);
+    params.append('resource_type', category);
+    
+    const resultsDiv = document.getElementById('placementSearchResults');
+    resultsDiv.innerHTML = '<div class="text-center"><div class="spinner-border text-primary"></div></div>';
+    
+    fetch(`/api/search?${params.toString()}`)
+        .then(res => res.json())
+        .then(data => {
+            displayPlacementResults(data);
+        })
+        .catch(err => {
+            console.error('Search error:', err);
+            resultsDiv.innerHTML = '<div class="alert alert-danger">Error performing search</div>';
+        });
+}
+
+// Display placement search results
+function displayPlacementResults(results) {
+    const resultsDiv = document.getElementById('placementSearchResults');
+    
+    if (results.length === 0) {
+        resultsDiv.innerHTML = '<div class="alert alert-info">No resources found</div>';
+        return;
+    }
+    
+    let html = '<div class="row g-3">';
+    results.forEach(resource => {
+        const ext = resource.file_url.split('.').pop() || 'pdf';
+        const icon = getFileIcon(ext);
+        
+        html += `
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">${resource.title}</h6>
+                        <p class="card-text small text-muted">${resource.subject_name || 'General'}</p>
+                        <div class="d-grid gap-2">
+                            <a href="/preview/${resource.file_url}" class="btn btn-outline-primary btn-sm" target="_blank">
+                                <i class="fas fa-eye me-1"></i>Preview
+                            </a>
+                            <a href="/download/${resource.file_url}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-download me-1"></i>Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    
+    resultsDiv.innerHTML = html;
+}
+
+// Helper function (same as in other pages)
+function getFileIcon(extension) {
+    const icons = {
+        'pdf': 'fas fa-file-pdf text-danger',
+        'ppt': 'fas fa-file-powerpoint text-warning',
+        'pptx': 'fas fa-file-powerpoint text-warning',
+        'doc': 'fas fa-file-word text-primary',
+        'docx': 'fas fa-file-word text-primary',
+        'zip': 'fas fa-file-archive text-secondary'
+    };
+    return icons[extension.toLowerCase()] || 'fas fa-file text-muted';
+}
+</script>
+{% endblock %}

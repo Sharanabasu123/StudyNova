@@ -1,0 +1,191 @@
+{% extends "layout.html" %}
+
+{% block title %}Leaderboard - StudyNova{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Leaderboard Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-primary text-white">
+                <div class="card-body">
+                    <h2 class="mb-0"><i class="fas fa-trophy me-2"></i>Leaderboard</h2>
+                    <p class="mb-0 mt-2">Top contributors who are making StudyNova better every day</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top 3 Contributors -->
+    <div class="row mb-4" id="topThree">
+        <!-- Will be populated by JavaScript -->
+    </div>
+
+    <!-- All Contributors List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list-ol me-2"></i>All Contributors
+                    </h5>
+                    <div class="spinner-border spinner-border-sm text-primary" id="loadingIndicator" style="display: none;" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="leaderboardList" class="row g-3">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Fetch leaderboard data
+function loadLeaderboard() {
+    document.getElementById('loadingIndicator').style.display = 'block';
+    
+    fetch('/api/leaderboard?limit=50')
+        .then(res => res.json())
+        .then(data => {
+            displayTopThree(data.slice(0, 3));
+            displayLeaderboard(data);
+        })
+        .catch(err => {
+            console.error('Error loading leaderboard:', err);
+            document.getElementById('leaderboardList').innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                    <h5 class="text-danger">Error loading leaderboard</h5>
+                    <p class="text-muted">Please try again later</p>
+                </div>
+            `;
+        })
+        .finally(() => {
+            document.getElementById('loadingIndicator').style.display = 'none';
+        });
+}
+
+// Display top 3 contributors with special styling
+function displayTopThree(topThree) {
+    const container = document.getElementById('topThree');
+    
+    if (topThree.length === 0) {
+        container.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-trophy fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No contributors yet</h5>
+                <p class="text-muted">Be the first to contribute!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Order: 2nd, 1st, 3rd (for visual pyramid)
+    const ordered = [topThree[1], topThree[0], topThree[2]].filter(Boolean);
+    const colSizes = ['col-md-4', 'col-md-4', 'col-md-4'];
+    const badges = ['rank-2', 'rank-1', 'rank-3'];
+    const icons = ['🥈', '🥇', '🥉'];
+    const heights = ['', 'mt-4', ''];
+    
+    container.innerHTML = ordered.map((user, index) => {
+        const profilePhoto = user.profile_photo 
+            ? (user.profile_photo.startsWith('http') ? user.profile_photo : '/' + user.profile_photo)
+            : '/static/images/student-hero.png';
+        
+        return `
+            <div class="${colSizes[index]} ${heights[index]}">
+                <div class="card text-center h-100 border-0 shadow-lg">
+                    <div class="card-body py-4">
+                        <div class="rank-badge ${badges[index]} mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                            ${icons[index]}
+                        </div>
+                        <img src="${profilePhoto}" 
+                             alt="${user.name}" 
+                             class="rounded-circle mb-3"
+                             style="width: 100px; height: 100px; object-fit: cover; border: 3px solid #4e73df;"
+                             onerror="this.src='/static/images/student-hero.png'">
+                        <h5 class="card-title mb-1">${user.name}</h5>
+                        <p class="text-muted small mb-2">${user.branch || 'Not specified'}</p>
+                        <div class="d-flex justify-content-center align-items-center gap-2 mb-2">
+                            <span class="badge bg-warning text-dark fs-6">
+                                ⭐ ${user.stars || 0} Stars
+                            </span>
+                        </div>
+                        <p class="badge bg-info mb-0">${user.achievement_level || 'Beginner'}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Display all contributors
+function displayLeaderboard(leaders) {
+    const container = document.getElementById('leaderboardList');
+    
+    if (leaders.length === 0) {
+        container.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No contributors yet</h5>
+                <p class="text-muted">Start uploading notes to earn stars!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = leaders.map((user, index) => {
+        const rank = index + 1;
+        const profilePhoto = user.profile_photo 
+            ? (user.profile_photo.startsWith('http') ? user.profile_photo : '/' + user.profile_photo)
+            : '/static/images/student-hero.png';
+        
+        // Determine rank badge class
+        let rankBadgeClass = 'rank-other';
+        let rankIcon = rank;
+        if (rank === 1) { rankBadgeClass = 'rank-1'; rankIcon = '👑'; }
+        else if (rank === 2) { rankBadgeClass = 'rank-2'; rankIcon = '🥈'; }
+        else if (rank === 3) { rankBadgeClass = 'rank-3'; rankIcon = '🥉'; }
+        
+        return `
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 hover-lift leaderboard-item">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="rank-badge ${rankBadgeClass} me-3" style="width: 45px; height: 45px; flex-shrink: 0;">
+                                ${rankIcon}
+                            </div>
+                            <img src="${profilePhoto}" 
+                                 alt="${user.name}" 
+                                 class="rounded-circle me-3"
+                                 style="width: 50px; height: 50px; object-fit: cover;"
+                                 onerror="this.src='/static/images/student-hero.png'">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-0">${user.name}</h6>
+                                <small class="text-muted">${user.branch || 'Not specified'}</small>
+                            </div>
+                            <div class="text-end">
+                                <div class="badge bg-warning text-dark mb-1">
+                                    ⭐ ${user.stars || 0}
+                                </div>
+                                <br>
+                                <small class="badge bg-info">${user.achievement_level || 'Beginner'}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Load leaderboard on page load
+document.addEventListener('DOMContentLoaded', loadLeaderboard);
+</script>
+{% endblock %}
