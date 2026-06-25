@@ -2088,6 +2088,19 @@ def admin_team():
 @app.route('/admin/team/add', methods=['GET', 'POST'])
 @admin_required
 def admin_add_team_member():
+    member = {
+        'name': '',
+        'title': '',
+        'bio': '',
+        'profile_url': None,
+        'profile_public_id': None,
+        'linkedin_url': '',
+        'github_url': '',
+        'is_founder': 0,
+        'is_active': 1,
+        'sort_order': 0,
+    }
+
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
         title = request.form.get('title', '').strip()
@@ -2101,21 +2114,46 @@ def admin_add_team_member():
         profile_public_id = None
         profile_photo = request.files.get('profile_photo')
 
+        member.update({
+            'name': name,
+            'title': title,
+            'bio': bio,
+            'profile_url': profile_url,
+            'profile_public_id': profile_public_id,
+            'linkedin_url': linkedin_url,
+            'github_url': github_url,
+            'is_founder': is_founder,
+            'is_active': is_active,
+            'sort_order': sort_order,
+        })
+
         if profile_photo and profile_photo.filename:
             try:
                 _, profile_url, _, profile_public_id = store_uploaded_file(profile_photo, ['team_members'], allow_images=True)
-            except ValueError as exc:
-                flash(str(exc), 'danger')
-                return redirect(url_for('admin_add_team_member'))
+                member['profile_url'] = profile_url
+                member['profile_public_id'] = profile_public_id
+            except Exception as exc:
+                flash(f'Profile photo upload failed: {exc}', 'danger')
+                return render_template('admin_add_team_member.html', member=member)
+
+        if not name:
+            flash('Team member name is required.', 'danger')
+            return render_template('admin_add_team_member.html', member=member)
 
         placeholder = get_placeholder()
-        execute_query(f'''
-            INSERT INTO team_members (name, title, bio, profile_url, profile_public_id, linkedin_url, github_url, is_founder, is_active, sort_order)
-            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
-        ''', (name, title, bio, profile_url, profile_public_id, linkedin_url, github_url, is_founder, is_active, sort_order), commit=True)
+        try:
+            execute_query(f'''
+                INSERT INTO team_members (name, title, bio, profile_url, profile_public_id, linkedin_url, github_url, is_founder, is_active, sort_order)
+                VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+            ''', (name, title, bio, profile_url, profile_public_id, linkedin_url, github_url, is_founder, is_active, sort_order), commit=True)
+        except Exception as exc:
+            flash(f'Unable to add team member: {exc}', 'danger')
+            return render_template('admin_add_team_member.html', member=member)
+
         flash('Team member added successfully.', 'success')
         return redirect(url_for('admin_team'))
-    return render_template('admin_add_team_member.html')
+
+    return render_template('admin_add_team_member.html', member=member)
 
 
 @app.route('/admin/team/edit/<int:member_id>', methods=['GET', 'POST'])
@@ -2140,21 +2178,45 @@ def admin_edit_team_member(member_id):
         profile_public_id = member.get('profile_public_id')
         profile_photo = request.files.get('profile_photo')
 
+        member.update({
+            'name': name,
+            'title': title,
+            'bio': bio,
+            'profile_url': profile_url,
+            'profile_public_id': profile_public_id,
+            'linkedin_url': linkedin_url,
+            'github_url': github_url,
+            'is_founder': is_founder,
+            'is_active': is_active,
+            'sort_order': sort_order,
+        })
+
         if profile_photo and profile_photo.filename:
             try:
                 _, profile_url, _, new_public_id = store_uploaded_file(profile_photo, ['team_members'], allow_images=True)
                 if profile_public_id:
                     delete_from_cloudinary(profile_public_id)
                 profile_public_id = new_public_id
-            except ValueError as exc:
-                flash(str(exc), 'danger')
-                return redirect(url_for('admin_edit_team_member', member_id=member_id))
+                member['profile_url'] = profile_url
+                member['profile_public_id'] = profile_public_id
+            except Exception as exc:
+                flash(f'Profile photo upload failed: {exc}', 'danger')
+                return render_template('admin_add_team_member.html', member=member)
 
-        execute_query(f'''
-            UPDATE team_members
-            SET name = {placeholder}, title = {placeholder}, bio = {placeholder}, profile_url = {placeholder}, profile_public_id = {placeholder}, linkedin_url = {placeholder}, github_url = {placeholder}, is_founder = {placeholder}, is_active = {placeholder}, sort_order = {placeholder}
-            WHERE id = {placeholder}
-        ''', (name, title, bio, profile_url, profile_public_id, linkedin_url, github_url, is_founder, is_active, sort_order, member_id), commit=True)
+        if not name:
+            flash('Team member name is required.', 'danger')
+            return render_template('admin_add_team_member.html', member=member)
+
+        try:
+            execute_query(f'''
+                UPDATE team_members
+                SET name = {placeholder}, title = {placeholder}, bio = {placeholder}, profile_url = {placeholder}, profile_public_id = {placeholder}, linkedin_url = {placeholder}, github_url = {placeholder}, is_founder = {placeholder}, is_active = {placeholder}, sort_order = {placeholder}
+                WHERE id = {placeholder}
+            ''', (name, title, bio, profile_url, profile_public_id, linkedin_url, github_url, is_founder, is_active, sort_order, member_id), commit=True)
+        except Exception as exc:
+            flash(f'Unable to update team member: {exc}', 'danger')
+            return render_template('admin_add_team_member.html', member=member)
+
         flash('Team member updated successfully.', 'success')
         return redirect(url_for('admin_team'))
 
