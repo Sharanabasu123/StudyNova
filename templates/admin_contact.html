@@ -1,0 +1,52 @@
+{% extends 'admin_dashboard.html' %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4><i class="fas fa-envelope"></i> Contact Messages</h4>
+</div>
+
+<div class="glass-card p-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-primary">
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Subject</th>
+                    <th>Message</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for msg in messages %}
+                <tr>
+                    <td>{{ msg.created_at }}</td>
+                    <td>{{ msg.name }}</td>
+                    <td><a href="mailto:{{ msg.email }}">{{ msg.email }}</a></td>
+                    <td>{{ msg.subject }}</td>
+                    <td class="text-truncate" style="max-width: 300px;">{{ msg.message }}</td>
+                    <td>
+                        <span class="badge bg-{{ 'warning' if msg.status == 'unread' else 'success' }}">
+                            {{ msg.status }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if msg.status == 'unread' %}
+                        <form action="{{ url_for('admin_mark_contact_read', msg_id=msg.id) }}" method="POST" style="display: inline;">
+                            <button type="submit" class="btn btn-sm btn-primary">Mark as Read</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted">No contact messages found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

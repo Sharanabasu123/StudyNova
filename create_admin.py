@@ -10,7 +10,7 @@ from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
 load_dotenv()
 
-ADMIN_EMAIL = os.environ.get('STUDYNOVA_ADMIN_EMAIL', 'demo@studynova.com')
+ADMIN_EMAIL = os.environ.get('STUDYNOVA_ADMIN_EMAIL', 'demo@studynova.com').strip().lower()
 ADMIN_PASSWORD = os.environ.get('STUDYNOVA_ADMIN_PASSWORD', 'studynova123')
 ADMIN_NAME = os.environ.get('STUDYNOVA_ADMIN_NAME', 'StudyNova Admin')
 DATABASE = os.path.join(os.path.dirname(__file__), 'studynova.db')
@@ -18,32 +18,49 @@ DATABASE = os.path.join(os.path.dirname(__file__), 'studynova.db')
 def create_admin_user():
     """Create admin user if not exists"""
     conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
+
+    cursor.execute("PRAGMA table_info(users)")
+    existing_columns = {row[1] for row in cursor.fetchall()}
+    if 'password_hash' not in existing_columns:
+        cursor.execute("ALTER TABLE users ADD COLUMN password_hash TEXT")
+    if 'is_admin' not in existing_columns:
+        cursor.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0")
+    conn.commit()
     
     # Check if admin already exists
-    cursor.execute("SELECT * FROM users WHERE email = ?", (ADMIN_EMAIL,))
+    cursor.execute("SELECT * FROM users WHERE LOWER(email) = ?", (ADMIN_EMAIL,))
     existing_user = cursor.fetchone()
     
     if existing_user:
         print(f"✓ User with email {ADMIN_EMAIL} already exists")
-        print(f"  ID: {existing_user[0]}")
-        print(f"  Username: {existing_user[1]}")
-        print(f"  Role: {existing_user[4] if len(existing_user) > 4 else 'N/A'}")
-        
-        # Update to admin role if not already
-        if len(existing_user) > 4 and existing_user[4] != 'admin':
-            cursor.execute("UPDATE users SET role = 'admin' WHERE email = ?", (ADMIN_EMAIL,))
-            conn.commit()
-            print(f"✓ Updated user role to 'admin'")
+        print(f"  ID: {existing_user['id']}")
+        print(f"  Username: {existing_user['username']}")
+        print(f"  Role: {existing_user['role']}")
+
+        hashed_password = generate_password_hash(ADMIN_PASSWORD)
+        cursor.execute("""
+            UPDATE users
+            SET username = ?,
+                email = ?,
+                password = ?,
+                password_hash = ?,
+                role = 'admin',
+                is_admin = 1
+            WHERE id = ?
+        """, (ADMIN_NAME, ADMIN_EMAIL, hashed_password, hashed_password, existing_user['id']))
+        conn.commit()
+        print("✓ Admin credentials synchronized")
         conn.close()
         return
     
     # Create admin user
     hashed_password = generate_password_hash(ADMIN_PASSWORD)
     cursor.execute('''
-        INSERT INTO users (username, email, password, role, phone, college, branch, semester, scheme)
-        VALUES (?, ?, ?, 'admin', '', '', 'Computer Science & Engineering', '3rd Semester', '2022 Scheme')
-    ''', (ADMIN_NAME, ADMIN_EMAIL, hashed_password))
+        INSERT INTO users (username, email, password, password_hash, role, is_admin, phone, college, branch, semester, scheme)
+        VALUES (?, ?, ?, ?, 'admin', 1, '', '', 'Computer Science & Engineering', '3rd Semester', '2022 Scheme')
+    ''', (ADMIN_NAME, ADMIN_EMAIL, hashed_password, hashed_password))
     
     conn.commit()
     conn.close()

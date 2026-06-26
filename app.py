@@ -4,7 +4,7 @@ import json
 import os
 import sqlite3
 from datetime import datetime, timedelta
-from urllib.parse import unquote
+from urllib.parse import unquote, urlparse
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import shutil
@@ -33,15 +33,55 @@ try:
 except Exception:
     cloudinary = None
     CLOUDINARY_AVAILABLE = False
+BASE_DIR = os.path.dirname(__file__)
+DATABASE_URL = (os.environ.get('DATABASE_URL') or '').strip()
+DEFAULT_SECRET_KEY = 'studynova-dev-secret-key-change-me'
+
+
+def parse_database_url(database_url):
+    if not database_url:
+        return {}
+
+    parsed = urlparse(database_url)
+    scheme = (parsed.scheme or '').lower()
+    normalized_scheme = scheme.split('+', 1)[0]
+
+    if normalized_scheme in ('postgres', 'postgresql'):
+        return {
+            'engine': 'postgres',
+            'host': parsed.hostname or 'localhost',
+            'port': parsed.port or 5432,
+            'user': unquote(parsed.username or ''),
+            'password': unquote(parsed.password or ''),
+            'database': unquote((parsed.path or '').lstrip('/')),
+        }
+
+    if normalized_scheme in ('sqlite', 'sqlite3'):
+        database_path = unquote((parsed.path or '').lstrip('/'))
+        if os.name == 'nt' and database_path and len(database_path) > 2 and database_path[1] != ':' and database_path[2] == ':':
+            database_path = database_path[1:]
+        if not database_path:
+            database_path = 'studynova.db'
+        return {
+            'engine': 'sqlite',
+            'database': os.path.abspath(os.path.expanduser(database_path)),
+        }
+
+    return {}
+
+
+DATABASE_URL_CONFIG = parse_database_url(DATABASE_URL)
+
 app = Flask(__name__)
-app.secret_key = os.environ.get('STUDYNOVA_SECRET_KEY') or os.urandom(32)
-UPLOAD_FOLDER = 'uploads'
+app.secret_key = os.environ.get('STUDYNOVA_SECRET_KEY', DEFAULT_SECRET_KEY)
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload size
-DATABASE = os.environ.get('SQLITE_DATABASE', os.path.join(os.path.dirname(__file__), 'studynova.db'))
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+DATABASE = DATABASE_URL_CONFIG.get('database') or os.environ.get('SQLITE_DATABASE', os.path.join(BASE_DIR, 'studynova.db'))
 ALLOWED_UPLOAD_EXTENSIONS = {'pdf', 'ppt', 'pptx', 'doc', 'docx'}
 ALLOWED_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 _database_initialized = False
@@ -88,7 +128,7 @@ def serve_upload(filename):
         if resource:
             cloud_id = resource.get('cloudinary_public_id') or resource.get('cloud_public_id')
             file_url = resource.get('file_url')
-            if cloud_id and file_url and file_url.startswith('http'):
+            if is_remote_media_url(file_url):
                 return redirect(file_url)
     except Exception:
         # On any error, fall back to local serving so the app remains usable in dev.
@@ -130,7 +170,7 @@ USE_MYSQL = all([
     os.environ.get('MYSQL_USER'),
     os.environ.get('MYSQL_PASSWORD'),
     os.environ.get('MYSQL_DATABASE'),
-])
+]) and DATABASE_URL_CONFIG.get('engine') != 'postgres'
 
 try:
     import mysql.connector
@@ -149,18 +189,18 @@ except ImportError:
     POSTGRES_AVAILABLE = False
 
 POSTGRES_CONFIG = {
-    'host': os.environ.get('POSTGRES_HOST', 'localhost'),
-    'port': int(os.environ.get('POSTGRES_PORT', 5432)),
-    'user': os.environ.get('POSTGRES_USER', 'studynova'),
-    'password': os.environ.get('POSTGRES_PASSWORD', 'studynova'),
-    'database': os.environ.get('POSTGRES_DATABASE', 'studynova'),
+    'host': DATABASE_URL_CONFIG.get('host') or os.environ.get('POSTGRES_HOST', 'localhost'),
+    'port': int(DATABASE_URL_CONFIG.get('port') or os.environ.get('POSTGRES_PORT', 5432)),
+    'user': DATABASE_URL_CONFIG.get('user') or os.environ.get('POSTGRES_USER', 'studynova'),
+    'password': DATABASE_URL_CONFIG.get('password') or os.environ.get('POSTGRES_PASSWORD', 'studynova'),
+    'database': DATABASE_URL_CONFIG.get('database') or os.environ.get('POSTGRES_DATABASE', 'studynova'),
 }
 
 USE_POSTGRES = all([
-    os.environ.get('POSTGRES_HOST'),
-    os.environ.get('POSTGRES_USER'),
-    os.environ.get('POSTGRES_PASSWORD'),
-    os.environ.get('POSTGRES_DATABASE'),
+    POSTGRES_CONFIG['host'],
+    POSTGRES_CONFIG['user'],
+    POSTGRES_CONFIG['password'],
+    POSTGRES_CONFIG['database'],
 ])
 
 
@@ -170,6 +210,14 @@ def mysql_enabled():
 
 def postgres_enabled():
     return not mysql_enabled() and USE_POSTGRES and POSTGRES_AVAILABLE
+
+
+def current_database_label():
+    if postgres_enabled():
+        return 'PostgreSQL'
+    if mysql_enabled():
+        return 'MySQL'
+    return 'SQLite'
 
 
 def get_db_connection():
@@ -243,21 +291,81 @@ def execute_query(sql, params=None, fetchone=False, fetchall=False, commit=False
 
 # Read a user record by email address.
 def get_user_by_email(email):
+    email = normalize_email(email)
     placeholder = get_placeholder()
-    query = f'SELECT * FROM users WHERE email = {placeholder}'
+    query = f'SELECT * FROM users WHERE LOWER(email) = {placeholder}'
     return execute_query(query, (email,), fetchone=True)
 
 
 def create_user(username, email, password):
+    username = (username or '').strip()
+    email = normalize_email(email)
     placeholder = get_placeholder()
     hashed_password = generate_password_hash(password)
-    query = f'INSERT INTO users (username, email, password) VALUES ({placeholder}, {placeholder}, {placeholder})'
-    execute_query(query, (username, email, hashed_password), commit=True)
+    query = f'''
+        INSERT INTO users (username, email, password, password_hash, role, is_admin)
+        VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+    '''
+    execute_query(query, (username, email, hashed_password, hashed_password, 'user', 0), commit=True)
+
+
+def normalize_email(email):
+    return (email or '').strip().lower()
+
+
+def get_stored_password_hash(user):
+    if not user:
+        return ''
+    return (user.get('password') or user.get('password_hash') or '').strip()
+
+
+def persist_user_password_hash(user_id, password_hash):
+    placeholder = get_placeholder()
+    execute_query(
+        f'UPDATE users SET password = {placeholder}, password_hash = {placeholder} WHERE id = {placeholder}',
+        (password_hash, password_hash, user_id),
+        commit=True
+    )
+
+
+def verify_user_password(user, password):
+    stored_hash = get_stored_password_hash(user)
+    if not stored_hash:
+        return False
+
+    try:
+        password_valid = check_password_hash(stored_hash, password)
+    except ValueError:
+        password_valid = False
+
+    if password_valid:
+        if user.get('password') != stored_hash or user.get('password_hash') != stored_hash:
+            persist_user_password_hash(user['id'], stored_hash)
+        return True
+
+    if stored_hash == password:
+        upgraded_hash = generate_password_hash(password)
+        persist_user_password_hash(user['id'], upgraded_hash)
+        return True
+
+    return False
 
 
 def column_exists(cursor, table_name, column_name):
     if mysql_enabled():
         cursor.execute(f"SHOW COLUMNS FROM {table_name} LIKE %s", (column_name,))
+        return cursor.fetchone() is not None
+    if postgres_enabled():
+        cursor.execute(
+            """
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = current_schema()
+              AND table_name = %s
+              AND column_name = %s
+            """,
+            (table_name, column_name)
+        )
         return cursor.fetchone() is not None
 
     cursor.execute(f"PRAGMA table_info({table_name})")
@@ -273,11 +381,443 @@ def insert_ignore_sql(table, columns):
     placeholder = get_placeholder()
     placeholders = ", ".join([placeholder] * len(columns))
     column_list = ", ".join(columns)
-    verb = "INSERT IGNORE" if mysql_enabled() else "INSERT OR IGNORE"
-    return f"{verb} INTO {table} ({column_list}) VALUES ({placeholders})"
+    if mysql_enabled():
+        return f"INSERT IGNORE INTO {table} ({column_list}) VALUES ({placeholders})"
+    if postgres_enabled():
+        return f"INSERT INTO {table} ({column_list}) VALUES ({placeholders}) ON CONFLICT DO NOTHING"
+    return f"INSERT OR IGNORE INTO {table} ({column_list}) VALUES ({placeholders})"
+
+
+def init_postgres_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    placeholder = get_placeholder()
+
+    postgres_statements = [
+        '''
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(100) NOT NULL,
+                email VARCHAR(150) UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                password_hash TEXT,
+                role VARCHAR(50) DEFAULT 'user',
+                is_admin INTEGER DEFAULT 0,
+                phone VARCHAR(20),
+                college VARCHAR(255),
+                branch VARCHAR(100),
+                semester VARCHAR(50),
+                scheme VARCHAR(50),
+                profile_photo TEXT,
+                profile_photo_public_id TEXT,
+                bio TEXT,
+                registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_active INTEGER DEFAULT 1,
+                stars INTEGER DEFAULT 0,
+                achievement_level VARCHAR(50) DEFAULT 'Beginner'
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS schemes (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100) UNIQUE NOT NULL,
+                description TEXT,
+                is_active INTEGER DEFAULT 1
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS semesters (
+                id SERIAL PRIMARY KEY,
+                scheme_id INTEGER NOT NULL REFERENCES schemes(id),
+                semester_number INTEGER NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                UNIQUE (scheme_id, semester_number)
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS branches (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) UNIQUE NOT NULL,
+                code VARCHAR(50) UNIQUE NOT NULL,
+                is_active INTEGER DEFAULT 1
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS cycles (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(50) UNIQUE NOT NULL,
+                code VARCHAR(50) UNIQUE NOT NULL
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS subjects (
+                id SERIAL PRIMARY KEY,
+                scheme_id INTEGER NOT NULL REFERENCES schemes(id),
+                semester_id INTEGER NOT NULL REFERENCES semesters(id),
+                branch_id INTEGER REFERENCES branches(id),
+                cycle_id INTEGER REFERENCES cycles(id),
+                name TEXT NOT NULL,
+                code VARCHAR(50) NOT NULL,
+                credits INTEGER,
+                stream VARCHAR(50),
+                is_common INTEGER DEFAULT 0,
+                is_lab INTEGER DEFAULT 0,
+                UNIQUE (scheme_id, semester_id, branch_id, cycle_id, code)
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS resources (
+                id SERIAL PRIMARY KEY,
+                subject_id INTEGER NOT NULL REFERENCES subjects(id),
+                title TEXT NOT NULL,
+                description TEXT,
+                file_url TEXT NOT NULL,
+                file_type VARCHAR(50) NOT NULL,
+                resource_type VARCHAR(100) NOT NULL,
+                module_number INTEGER,
+                download_count INTEGER DEFAULT 0,
+                view_count INTEGER DEFAULT 0,
+                uploaded_by INTEGER REFERENCES users(id),
+                upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_approved INTEGER DEFAULT 1,
+                cloudinary_public_id TEXT
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS notes (
+                id SERIAL PRIMARY KEY,
+                resource_id INTEGER UNIQUE REFERENCES resources(id) ON DELETE CASCADE,
+                subject_id INTEGER NOT NULL REFERENCES subjects(id),
+                title TEXT NOT NULL,
+                file_url TEXT NOT NULL,
+                file_type VARCHAR(50) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS contact_messages (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                email VARCHAR(150) NOT NULL,
+                subject VARCHAR(255) NOT NULL,
+                message TEXT NOT NULL,
+                status VARCHAR(50) DEFAULT 'unread',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS user_downloads (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                resource_id INTEGER NOT NULL REFERENCES resources(id),
+                downloaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS saved_notes (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                resource_id INTEGER NOT NULL REFERENCES resources(id),
+                saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (user_id, resource_id)
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS viewed_notes (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                resource_id INTEGER NOT NULL REFERENCES resources(id),
+                viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS notifications (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                title VARCHAR(255) NOT NULL,
+                message TEXT NOT NULL,
+                type VARCHAR(50) NOT NULL,
+                is_read INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS feedback (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                email VARCHAR(150) NOT NULL,
+                subject VARCHAR(255) NOT NULL,
+                message TEXT NOT NULL,
+                status VARCHAR(50) DEFAULT 'unread',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS exam_categories (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100) UNIQUE NOT NULL,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS exam_topics (
+                id SERIAL PRIMARY KEY,
+                exam_category_id INTEGER NOT NULL REFERENCES exam_categories(id),
+                name VARCHAR(255) NOT NULL,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS exam_resources (
+                id SERIAL PRIMARY KEY,
+                exam_topic_id INTEGER NOT NULL REFERENCES exam_topics(id),
+                title TEXT NOT NULL,
+                description TEXT,
+                file_url TEXT NOT NULL,
+                file_type VARCHAR(50) NOT NULL,
+                resource_type VARCHAR(100) NOT NULL,
+                download_count INTEGER DEFAULT 0,
+                view_count INTEGER DEFAULT 0,
+                uploaded_by INTEGER REFERENCES users(id),
+                upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_approved INTEGER DEFAULT 1,
+                cloudinary_public_id TEXT
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS school_classes (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(50) UNIQUE NOT NULL,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS school_subjects (
+                id SERIAL PRIMARY KEY,
+                school_class_id INTEGER NOT NULL REFERENCES school_classes(id),
+                name VARCHAR(100) NOT NULL,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS school_chapters (
+                id SERIAL PRIMARY KEY,
+                school_subject_id INTEGER NOT NULL REFERENCES school_subjects(id),
+                name VARCHAR(255) NOT NULL,
+                description TEXT,
+                chapter_number INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS school_resources (
+                id SERIAL PRIMARY KEY,
+                school_chapter_id INTEGER NOT NULL REFERENCES school_chapters(id),
+                title TEXT NOT NULL,
+                description TEXT,
+                file_url TEXT NOT NULL,
+                file_type VARCHAR(50) NOT NULL,
+                resource_type VARCHAR(100) NOT NULL,
+                download_count INTEGER DEFAULT 0,
+                view_count INTEGER DEFAULT 0,
+                uploaded_by INTEGER REFERENCES users(id),
+                upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_approved INTEGER DEFAULT 1,
+                cloudinary_public_id TEXT
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS activity_logs (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id),
+                admin_id INTEGER REFERENCES users(id),
+                action VARCHAR(255) NOT NULL,
+                details TEXT,
+                ip_address VARCHAR(45),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS report_notes (
+                id SERIAL PRIMARY KEY,
+                resource_id INTEGER NOT NULL REFERENCES resources(id),
+                reported_by INTEGER NOT NULL REFERENCES users(id),
+                report_type VARCHAR(100) NOT NULL,
+                description TEXT,
+                status VARCHAR(50) DEFAULT 'pending',
+                resolved_by INTEGER REFERENCES users(id),
+                resolved_at TIMESTAMP NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS syllabus (
+                id SERIAL PRIMARY KEY,
+                subject_id INTEGER NOT NULL REFERENCES subjects(id),
+                file_url TEXT NOT NULL,
+                file_type VARCHAR(50) NOT NULL,
+                cloudinary_public_id TEXT,
+                course_description TEXT,
+                course_outcomes TEXT,
+                module1 TEXT,
+                module2 TEXT,
+                module3 TEXT,
+                module4 TEXT,
+                module5 TEXT,
+                text_books TEXT,
+                reference_books TEXT,
+                uploaded_by INTEGER REFERENCES users(id),
+                upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS team_members (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                title VARCHAR(255),
+                bio TEXT,
+                profile_url TEXT,
+                profile_public_id TEXT,
+                linkedin_url TEXT,
+                github_url TEXT,
+                is_founder INTEGER DEFAULT 0,
+                is_active INTEGER DEFAULT 1,
+                sort_order INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''',
+        '''
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                token VARCHAR(255) UNIQUE NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                used INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        '''
+    ]
+
+    try:
+        for statement in postgres_statements:
+            cursor.execute(statement)
+
+        add_column_if_missing(cursor, 'users', 'password_hash', 'TEXT')
+        add_column_if_missing(cursor, 'users', 'is_admin', 'INTEGER DEFAULT 0')
+        add_column_if_missing(cursor, 'users', 'role', "VARCHAR(50) DEFAULT 'user'")
+        add_column_if_missing(cursor, 'users', 'phone', 'VARCHAR(20)')
+        add_column_if_missing(cursor, 'users', 'college', 'VARCHAR(255)')
+        add_column_if_missing(cursor, 'users', 'branch', 'VARCHAR(100)')
+        add_column_if_missing(cursor, 'users', 'semester', 'VARCHAR(50)')
+        add_column_if_missing(cursor, 'users', 'scheme', 'VARCHAR(50)')
+        add_column_if_missing(cursor, 'users', 'profile_photo', 'TEXT')
+        add_column_if_missing(cursor, 'users', 'profile_photo_public_id', 'TEXT')
+        add_column_if_missing(cursor, 'users', 'bio', 'TEXT')
+        add_column_if_missing(cursor, 'users', 'registration_date', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP')
+        add_column_if_missing(cursor, 'users', 'is_active', 'INTEGER DEFAULT 1')
+        add_column_if_missing(cursor, 'users', 'stars', 'INTEGER DEFAULT 0')
+        add_column_if_missing(cursor, 'users', 'achievement_level', "VARCHAR(50) DEFAULT 'Beginner'")
+        add_column_if_missing(cursor, 'subjects', 'stream', 'VARCHAR(50)')
+        add_column_if_missing(cursor, 'subjects', 'is_common', 'INTEGER DEFAULT 0')
+        add_column_if_missing(cursor, 'subjects', 'is_lab', 'INTEGER DEFAULT 0')
+        add_column_if_missing(cursor, 'resources', 'cloudinary_public_id', 'TEXT')
+        add_column_if_missing(cursor, 'exam_resources', 'cloudinary_public_id', 'TEXT')
+        add_column_if_missing(cursor, 'school_resources', 'cloudinary_public_id', 'TEXT')
+        add_column_if_missing(cursor, 'syllabus', 'cloudinary_public_id', 'TEXT')
+
+        cursor.execute("UPDATE users SET password = password_hash WHERE (password IS NULL OR password = '') AND password_hash IS NOT NULL")
+        cursor.execute("UPDATE users SET password_hash = password WHERE (password_hash IS NULL OR password_hash = '') AND password IS NOT NULL")
+        cursor.execute("UPDATE users SET role = 'admin' WHERE COALESCE(is_admin, 0) = 1 AND COALESCE(role, '') != 'admin'")
+        cursor.execute("UPDATE users SET is_admin = CASE WHEN role = 'admin' THEN 1 ELSE 0 END")
+
+        exam_cats = [
+            ("KPSC", "Karnataka Public Service Commission"),
+            ("SSC", "Staff Selection Commission"),
+            ("RRB", "Railway Recruitment Board"),
+            ("Banking", "Banking Exams (IBPS, SBI, etc.)"),
+            ("Karnataka GK", "Karnataka General Knowledge"),
+            ("Current Affairs", "Current Affairs and News")
+        ]
+        for cat_name, cat_desc in exam_cats:
+            cursor.execute(f"SELECT id FROM exam_categories WHERE name = {placeholder}", (cat_name,))
+            if not cursor.fetchone():
+                cursor.execute(
+                    f"INSERT INTO exam_categories (name, description) VALUES ({placeholder}, {placeholder})",
+                    (cat_name, cat_desc)
+                )
+
+        school_classes = [
+            ("6th Standard", "Class 6"),
+            ("7th Standard", "Class 7"),
+            ("8th Standard", "Class 8"),
+            ("9th Standard", "Class 9"),
+            ("10th Standard", "Class 10")
+        ]
+        for class_name, class_desc in school_classes:
+            cursor.execute(f"SELECT id FROM school_classes WHERE name = {placeholder}", (class_name,))
+            class_row = cursor.fetchone()
+            if class_row:
+                class_id = class_row[0]
+            else:
+                cursor.execute(
+                    f"INSERT INTO school_classes (name, description) VALUES ({placeholder}, {placeholder})",
+                    (class_name, class_desc)
+                )
+                cursor.execute(f"SELECT id FROM school_classes WHERE name = {placeholder}", (class_name,))
+                class_id = cursor.fetchone()[0]
+
+            for subj_name in ("Science", "Social Science"):
+                cursor.execute(
+                    f"SELECT id FROM school_subjects WHERE school_class_id = {placeholder} AND name = {placeholder}",
+                    (class_id, subj_name)
+                )
+                if not cursor.fetchone():
+                    cursor.execute(
+                        f"INSERT INTO school_subjects (school_class_id, name) VALUES ({placeholder}, {placeholder})",
+                        (class_id, subj_name)
+                    )
+
+        ensure_default_academic_data(cursor)
+        migrate_legacy_notes(cursor)
+
+        cursor.execute(f"SELECT * FROM users WHERE role = {placeholder}", ('admin',))
+        existing_admin = cursor.fetchone()
+        if not existing_admin:
+            admin_email = normalize_email(os.environ.get('STUDYNOVA_ADMIN_EMAIL'))
+            admin_password = os.environ.get('STUDYNOVA_ADMIN_PASSWORD')
+            admin_name = os.environ.get('STUDYNOVA_ADMIN_NAME', 'StudyNova Admin')
+            if admin_email and admin_password:
+                hashed_admin_password = generate_password_hash(admin_password)
+                cursor.execute(f'''
+                    INSERT INTO users (username, email, password, password_hash, role, is_admin, phone, college, branch, semester, scheme)
+                    VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+                ''', (admin_name, admin_email, hashed_admin_password, hashed_admin_password, 'admin', 1, '', '', 'Computer Science & Engineering', '3rd Semester', '2022 Scheme'))
+
+        demo_email = 'demo@studynova.com'
+        cursor.execute(f"SELECT * FROM users WHERE email = {placeholder}", (demo_email,))
+        demo_user = cursor.fetchone()
+        if not demo_user and os.environ.get('STUDYNOVA_CREATE_DEMO_USER') == '1':
+            hashed_demo_password = generate_password_hash('studynova123')
+            cursor.execute(f'''
+                INSERT INTO users (username, email, password, password_hash, role, is_admin, phone, college, branch, semester, scheme)
+                VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+            ''', ('Demo Student', demo_email, hashed_demo_password, hashed_demo_password, 'user', 0, '9876543210', 'Demo College', 'Computer Science & Engineering', '2nd Semester', '2022 Scheme'))
+
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def init_db():
+    if postgres_enabled():
+        init_postgres_db()
+        return
+
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -321,6 +861,8 @@ def init_db():
         print("Non-destructive users schema upgrade: adding missing columns if any.")
         try:
             add_column_if_missing(cursor, 'users', 'role', "VARCHAR(50) DEFAULT 'user'" if mysql_enabled() else "TEXT DEFAULT 'user'")
+            add_column_if_missing(cursor, 'users', 'password_hash', "VARCHAR(255)" if mysql_enabled() else "TEXT")
+            add_column_if_missing(cursor, 'users', 'is_admin', "TINYINT DEFAULT 0" if mysql_enabled() else "INTEGER DEFAULT 0")
             add_column_if_missing(cursor, 'users', 'phone', "VARCHAR(20)" if mysql_enabled() else "TEXT")
             add_column_if_missing(cursor, 'users', 'college', "VARCHAR(255)" if mysql_enabled() else "TEXT")
             add_column_if_missing(cursor, 'users', 'branch', "VARCHAR(100)" if mysql_enabled() else "TEXT")
@@ -342,7 +884,9 @@ def init_db():
                     username VARCHAR(100) NOT NULL,
                     email VARCHAR(150) UNIQUE NOT NULL,
                     password VARCHAR(255) NOT NULL,
+                    password_hash VARCHAR(255),
                     role VARCHAR(50) DEFAULT 'user',
+                    is_admin TINYINT DEFAULT 0,
                     phone VARCHAR(20),
                     college VARCHAR(255),
                     branch VARCHAR(100),
@@ -362,7 +906,9 @@ def init_db():
                     username TEXT NOT NULL,
                     email TEXT UNIQUE NOT NULL,
                     password TEXT NOT NULL,
+                    password_hash TEXT,
                     role TEXT DEFAULT 'user',
+                    is_admin INTEGER DEFAULT 0,
                     phone TEXT,
                     college TEXT,
                     branch TEXT,
@@ -378,6 +924,8 @@ def init_db():
 
     try:
         add_column_if_missing(cursor, 'users', 'role', "VARCHAR(50) DEFAULT 'user'" if mysql_enabled() else "TEXT DEFAULT 'user'")
+        add_column_if_missing(cursor, 'users', 'password_hash', "VARCHAR(255)" if mysql_enabled() else "TEXT")
+        add_column_if_missing(cursor, 'users', 'is_admin', "TINYINT DEFAULT 0" if mysql_enabled() else "INTEGER DEFAULT 0")
         add_column_if_missing(cursor, 'users', 'phone', "VARCHAR(20)" if mysql_enabled() else "TEXT")
         add_column_if_missing(cursor, 'users', 'college', "VARCHAR(255)" if mysql_enabled() else "TEXT")
         add_column_if_missing(cursor, 'users', 'branch', "VARCHAR(100)" if mysql_enabled() else "TEXT")
@@ -390,6 +938,15 @@ def init_db():
         add_column_if_missing(cursor, 'users', 'is_active', "TINYINT DEFAULT 1" if mysql_enabled() else "INTEGER DEFAULT 1")
     except Exception as e:
         print(f"Error ensuring users columns: {e}")
+
+    try:
+        cursor.execute("UPDATE users SET password = password_hash WHERE (password IS NULL OR password = '') AND password_hash IS NOT NULL")
+        cursor.execute("UPDATE users SET password_hash = password WHERE (password_hash IS NULL OR password_hash = '') AND password IS NOT NULL")
+        cursor.execute("UPDATE users SET role = 'admin' WHERE COALESCE(is_admin, 0) = 1 AND COALESCE(role, '') != 'admin'")
+        cursor.execute("UPDATE users SET is_admin = CASE WHEN role = 'admin' THEN 1 ELSE 0 END")
+        conn.commit()
+    except Exception as e:
+        print(f"Error syncing legacy auth columns: {e}")
 
     # Create schemes table
     if mysql_enabled():
@@ -1208,11 +1765,18 @@ def init_db():
             if not cursor.fetchone():
                 cursor.execute("ALTER TABLE users ADD COLUMN stars INT DEFAULT 0")
                 conn.commit()
+            cursor.execute("SHOW COLUMNS FROM users LIKE 'password_hash'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE users ADD COLUMN password_hash VARCHAR(255)")
+                conn.commit()
         else:
             cursor.execute("PRAGMA table_info(users)")
             columns = [col[1] for col in cursor.fetchall()]
             if 'stars' not in columns:
                 cursor.execute("ALTER TABLE users ADD COLUMN stars INTEGER DEFAULT 0")
+                conn.commit()
+            if 'password_hash' not in columns:
+                cursor.execute("ALTER TABLE users ADD COLUMN password_hash TEXT")
                 conn.commit()
     except Exception as e:
         print(f"Error adding stars column: {e}")
@@ -1421,10 +1985,10 @@ def init_db():
         if admin_email and admin_password:
             hashed_admin_password = generate_password_hash(admin_password)
             cursor.execute(f'''
-                INSERT INTO users (username, email, password, role, phone, college, branch, semester, scheme)
-                VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+                INSERT INTO users (username, email, password, password_hash, role, is_admin, phone, college, branch, semester, scheme)
+                VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
             ''', (admin_name, admin_email,
-                  hashed_admin_password, 'admin', '', '', 'Computer Science & Engineering', '3rd Semester', '2022 Scheme'))
+                  hashed_admin_password, hashed_admin_password, 'admin', 1, '', '', 'Computer Science & Engineering', '3rd Semester', '2022 Scheme'))
             print(f"Admin user created from STUDYNOVA_ADMIN_EMAIL: {admin_email}")
         else:
             print("No admin user exists. Set STUDYNOVA_ADMIN_EMAIL and STUDYNOVA_ADMIN_PASSWORD before first production startup.")
@@ -1436,9 +2000,9 @@ def init_db():
     if not demo_user and os.environ.get('STUDYNOVA_CREATE_DEMO_USER') == '1':
         hashed_demo_password = generate_password_hash('studynova123')
         cursor.execute(f'''
-            INSERT INTO users (username, email, password, role, phone, college, branch, semester, scheme)
-            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
-        ''', ('Demo Student', 'demo@studynova.com', hashed_demo_password, 'user',
+            INSERT INTO users (username, email, password, password_hash, role, is_admin, phone, college, branch, semester, scheme)
+            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+        ''', ('Demo Student', 'demo@studynova.com', hashed_demo_password, hashed_demo_password, 'user', 0,
               '9876543210', 'Demo College', 'Computer Science & Engineering', '2nd Semester', '2022 Scheme'))
         print("Demo user created from local development seed settings.")
 
@@ -1451,6 +2015,17 @@ def init_db():
 def table_exists(cursor, table_name):
     if mysql_enabled():
         cursor.execute("SHOW TABLES LIKE %s", (table_name,))
+        return cursor.fetchone() is not None
+    if postgres_enabled():
+        cursor.execute(
+            """
+            SELECT 1
+            FROM information_schema.tables
+            WHERE table_schema = current_schema()
+              AND table_name = %s
+            """,
+            (table_name,)
+        )
         return cursor.fetchone() is not None
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
@@ -1465,6 +2040,20 @@ def create_notes_table(cursor):
                 resource_id INT UNIQUE,
                 subject_id INT NOT NULL,
                 title VARCHAR(255) NOT NULL,
+                file_url TEXT NOT NULL,
+                file_type VARCHAR(50) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (resource_id) REFERENCES resources(id) ON DELETE CASCADE,
+                FOREIGN KEY (subject_id) REFERENCES subjects(id)
+            )
+        ''')
+    elif postgres_enabled():
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS notes (
+                id SERIAL PRIMARY KEY,
+                resource_id INTEGER UNIQUE,
+                subject_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
                 file_url TEXT NOT NULL,
                 file_type VARCHAR(50) NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -1499,7 +2088,7 @@ def get_or_create_general_notes_subject(cursor):
     semester = None
     if scheme:
         semester = execute_query(
-            "SELECT id FROM semesters WHERE scheme_id = %s ORDER BY semester_number LIMIT 1" if mysql_enabled() else "SELECT id FROM semesters WHERE scheme_id = ? ORDER BY semester_number LIMIT 1",
+            f"SELECT id FROM semesters WHERE scheme_id = {placeholder} ORDER BY semester_number LIMIT 1",
             (scheme['id'],),
             fetchone=True
         )
@@ -1528,6 +2117,17 @@ def migrate_legacy_notes(cursor):
 
     if mysql_enabled():
         cursor.execute("SHOW COLUMNS FROM notes")
+        note_columns = [col[0] for col in cursor.fetchall()]
+    elif postgres_enabled():
+        cursor.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = current_schema()
+              AND table_name = %s
+            """,
+            ('notes',)
+        )
         note_columns = [col[0] for col in cursor.fetchall()]
     else:
         cursor.execute("PRAGMA table_info(notes)")
@@ -1749,7 +2349,7 @@ def send_welcome_email(user_email, username):
 
 def send_password_reset_email(user_email, username, reset_token):
     """Send password reset email"""
-    reset_url = f"http://studynova.com/reset-password?token={reset_token}"
+    reset_url = f"{request.host_url}reset-password/{reset_token}"
     subject = "StudyNova - Password Reset Request"
     content = f"""
         <p>Dear <strong>{username}</strong>,</p>
@@ -2172,18 +2772,32 @@ def get_stats():
             return result['count'] or 0
         return 0
 
-    total_users = safe_get_count("SELECT COUNT(*) as count FROM users")
-    total_notes = safe_get_count("SELECT COUNT(*) as count FROM resources WHERE is_approved = 1")
-    total_downloads = safe_get_count("SELECT SUM(download_count) as count FROM resources")
-    total_views = safe_get_count("SELECT SUM(view_count) as count FROM resources")
+    total_accounts = safe_get_count("SELECT COUNT(*) as count FROM users")
+    total_team_members = safe_get_count("SELECT COUNT(*) as count FROM team_members WHERE is_active = 1")
+    total_feedback = safe_get_count("SELECT COUNT(*) as count FROM feedback")
+    total_messages = safe_get_count("SELECT COUNT(*) as count FROM contact_messages")
+    unread_messages = safe_get_count(f"SELECT COUNT(*) as count FROM contact_messages WHERE status = {placeholder}", ('unread',))
+
+    total_library_notes = safe_get_count("SELECT COUNT(*) as count FROM resources WHERE is_approved = 1")
+    total_exam_notes = safe_get_count("SELECT COUNT(*) as count FROM exam_resources")
+    total_school_notes = safe_get_count("SELECT COUNT(*) as count FROM school_resources")
+    total_syllabus = safe_get_count("SELECT COUNT(*) as count FROM syllabus")
+    total_notes = total_library_notes + total_exam_notes + total_school_notes + total_syllabus
+
+    total_downloads = (
+        safe_get_count("SELECT SUM(download_count) as count FROM resources") +
+        safe_get_count("SELECT SUM(download_count) as count FROM exam_resources") +
+        safe_get_count("SELECT SUM(download_count) as count FROM school_resources")
+    )
+    total_views = (
+        safe_get_count("SELECT SUM(view_count) as count FROM resources") +
+        safe_get_count("SELECT SUM(view_count) as count FROM exam_resources") +
+        safe_get_count("SELECT SUM(view_count) as count FROM school_resources")
+    )
 
     # Get admin count and regular users count
     admin_count = safe_get_count(f"SELECT COUNT(*) as count FROM users WHERE role = {placeholder}", ('admin',))
-    regular_users = total_users - admin_count
-
-    # Get messages count
-    total_messages = safe_get_count("SELECT COUNT(*) as count FROM contact_messages")
-    unread_messages = safe_get_count(f"SELECT COUNT(*) as count FROM contact_messages WHERE status = {placeholder}", ('unread',))
+    regular_users = max(total_accounts - admin_count, 0)
 
     # Get pending/approved/rejected notes count
     pending_notes = safe_get_count("SELECT COUNT(*) as count FROM resources WHERE is_approved = 0")
@@ -2191,17 +2805,18 @@ def get_stats():
     rejected_notes = safe_get_count("SELECT COUNT(*) as count FROM resources WHERE is_approved = -1") if mysql_enabled() else safe_get_count("SELECT COUNT(*) as count FROM resources WHERE is_approved = 2")
 
     # Get total subjects, branches, syllabus files
-    total_subjects = safe_get_count("SELECT COUNT(*) as count FROM subjects")
+    total_subjects = safe_get_count("SELECT COUNT(*) as count FROM subjects") + safe_get_count("SELECT COUNT(*) as count FROM school_subjects")
     total_branches = safe_get_count("SELECT COUNT(*) as count FROM branches")
-    total_syllabus = safe_get_count("SELECT COUNT(*) as count FROM syllabus")
 
     # Get total stars awarded
     total_stars = safe_get_count("SELECT SUM(stars) as count FROM users")
 
     return {
-        'total_users': total_users,
+        'total_users': regular_users,
+        'total_accounts': total_accounts,
         'total_notes': total_notes,
         'downloads': total_downloads,
+        'total_downloads': total_downloads,
         'total_views': total_views,
         'admin_users': admin_count,
         'regular_users': regular_users,
@@ -2214,6 +2829,8 @@ def get_stats():
         'total_subjects': total_subjects,
         'total_branches': total_branches,
         'total_syllabus': total_syllabus,
+        'total_team_members': total_team_members,
+        'total_feedback': total_feedback,
         'total_stars': total_stars
     }
 
@@ -2383,7 +3000,20 @@ def seed_2022_cyber_security_subjects(cursor):
                     INSERT INTO subjects (scheme_id, semester_id, branch_id, cycle_id, name, code, credits, stream, is_common)
                     VALUES ({placeholder}, {placeholder}, {placeholder}, NULL, {placeholder}, {placeholder}, 4, {placeholder}, 0)
                 ''', (scheme_id, semester_id, branch_id, name, code, 'computer_science'))
-                subject_id = cursor.lastrowid
+                if postgres_enabled():
+                    cursor.execute(
+                        f'''
+                            SELECT id FROM subjects
+                            WHERE scheme_id = {placeholder}
+                              AND semester_id = {placeholder}
+                              AND branch_id = {placeholder}
+                              AND code = {placeholder}
+                        ''',
+                        (scheme_id, semester_id, branch_id, code)
+                    )
+                    subject_id = cursor.fetchone()[0]
+                else:
+                    subject_id = cursor.lastrowid
 
             if index == 0:
                 first_subject_by_semester[semester_id] = subject_id
@@ -2441,13 +3071,13 @@ def ensure_default_academic_data(cursor):
             cursor.execute(f"INSERT INTO branches (name, code) VALUES ({placeholder}, {placeholder})", (name, code))
 
     default_cycles = [
-        'P Cycle',
-        'C Cycle'
+        ('P Cycle', 'P_CYCLE'),
+        ('C Cycle', 'C_CYCLE')
     ]
-    for name in default_cycles:
+    for name, code in default_cycles:
         cursor.execute(f"SELECT id FROM cycles WHERE name = {placeholder}", (name,))
         if not cursor.fetchone():
-            cursor.execute(f"INSERT INTO cycles (name) VALUES ({placeholder})", (name,))
+            cursor.execute(f"INSERT INTO cycles (name, code) VALUES ({placeholder}, {placeholder})", (name, code))
 
     # Ensure semesters for all schemes include semesters 1-8
     cursor.execute("SELECT id FROM schemes")
@@ -2594,6 +3224,8 @@ def upload_file_to_cloudinary(file, folder=None):
         public_id = upload_result.get('public_id')
         if not secure_url:
             raise RuntimeError('Cloudinary upload did not return a secure URL.')
+        if not public_id:
+            raise RuntimeError('Cloudinary upload did not return a public ID.')
         print(f"[cloudinary] Cloudinary upload successful: {public_id} -> {secure_url}")
         return secure_url, public_id, ext.lower().lstrip('.')
     except Exception as e:
@@ -2615,6 +3247,19 @@ def delete_from_cloudinary(public_id):
         cloudinary.api.delete_resources([public_id])
     except Exception as e:
         print(f"Cloudinary delete error: {e}")
+
+
+def is_remote_media_url(file_url):
+    return isinstance(file_url, str) and file_url.startswith(('http://', 'https://'))
+
+
+def normalize_local_media_path(file_url):
+    if not file_url:
+        return ''
+    normalized = str(file_url).replace('\\', '/')
+    if normalized.startswith('uploads/'):
+        normalized = normalized[len('uploads/'):]
+    return normalized.lstrip('/')
 
 
 def allowed_file(filename):
@@ -2670,6 +3315,8 @@ def store_uploaded_file(file, path_parts=None, allow_images=False):
 
     if cloudinary_configured():
         cloud_url, cloud_public_id = upload_file_to_cloudinary(file, folder='/'.join(path_parts or []))
+        if not cloud_url or not cloud_public_id:
+            raise RuntimeError('Cloudinary upload must return both secure_url and public_id.')
         return None, cloud_url, ext, cloud_public_id
 
     safe_parts = []
@@ -2859,11 +3506,12 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']
+        email = normalize_email(request.form['email'])
         password = request.form['password']
         user = get_user_by_email(email)
 
-        if user and check_password_hash(user['password'], password):
+        if user and verify_user_password(user, password):
+            session.permanent = True
             session['user_email'] = user['email']
             session['user_name'] = user['username']
             session['user_id'] = user['id']
@@ -2884,8 +3532,8 @@ def login():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
-        email = request.form['email']
+        username = request.form['username'].strip()
+        email = normalize_email(request.form['email'])
         password = request.form['password']
         confirm_password = request.form['confirm_password']
 
@@ -2909,6 +3557,77 @@ def logout():
     session.clear()
     flash('Logged out successfully!', 'info')
     return redirect(url_for('login'))
+
+
+# Forgot Password
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        
+        if not email:
+            flash('Email is required!', 'danger')
+            return render_template('forgot_password.html')
+        
+        user = get_user_by_email(email)
+        if user:
+            # Generate reset token
+            reset_token = str(uuid4())
+            expires_at = datetime.now() + timedelta(hours=1)
+            
+            placeholder = get_placeholder()
+            execute_query(f'''
+                INSERT INTO password_reset_tokens (user_id, token, expires_at)
+                VALUES ({placeholder}, {placeholder}, {placeholder})
+            ''', (user['id'], reset_token, expires_at), commit=True)
+            
+            # Send email
+            send_password_reset_email(user['email'], user['username'], reset_token)
+        
+        flash('If that email exists, a reset link has been sent!', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('forgot_password.html')
+
+
+# Reset Password
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    # Check if token is valid
+    placeholder = get_placeholder()
+    token_record = execute_query(f'''
+        SELECT * FROM password_reset_tokens 
+        WHERE token = {placeholder} AND used = 0 AND expires_at > CURRENT_TIMESTAMP
+    ''', (token,), fetchone=True)
+    
+    if not token_record:
+        flash('Invalid or expired reset token!', 'danger')
+        return redirect(url_for('forgot_password'))
+    
+    if request.method == 'POST':
+        new_password = request.form.get('password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
+        
+        if not new_password or not confirm_password:
+            flash('All fields are required!', 'danger')
+            return render_template('reset_password.html', token=token)
+        
+        if new_password != confirm_password:
+            flash('Passwords do not match!', 'danger')
+            return render_template('reset_password.html', token=token)
+        
+        # Update password
+        hashed_password = generate_password_hash(new_password)
+        persist_user_password_hash(token_record['user_id'], hashed_password)
+        
+        # Mark token as used
+        execute_query(f"UPDATE password_reset_tokens SET used = 1 WHERE id = {placeholder}", 
+                     (token_record['id'],), commit=True)
+        
+        flash('Password reset successful! Please login.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('reset_password.html', token=token)
 
 
 @app.route('/dashboard')
@@ -3011,7 +3730,7 @@ def profile_change_password():
 
         user = get_user_by_email(session['user_email'])
 
-        if not check_password_hash(user.get('password'), current_password):
+        if not verify_user_password(user, current_password):
             flash('Current password is incorrect', 'danger')
             return redirect(url_for('profile_change_password'))
 
@@ -3021,8 +3740,7 @@ def profile_change_password():
 
         placeholder = get_placeholder()
         hashed_new = generate_password_hash(new_password)
-        update_query = f'UPDATE users SET password = {placeholder} WHERE id = {placeholder}'
-        execute_query(update_query, (hashed_new, user.get('id')), commit=True)
+        persist_user_password_hash(user.get('id'), hashed_new)
 
         flash('Password Changed Successfully', 'success')
         return redirect(url_for('profile'))
@@ -3138,7 +3856,7 @@ def notes_library():
 
     is_first_year = False
     if semester_id:
-        semester = execute_query("SELECT * FROM semesters WHERE id = ?" if not mysql_enabled() else "SELECT * FROM semesters WHERE id = %s", (semester_id,), fetchone=True)
+        semester = execute_query(f"SELECT * FROM semesters WHERE id = {get_placeholder()}", (semester_id,), fetchone=True)
         if semester and (semester['semester_number'] == 1 or semester['semester_number'] == 2):
             is_first_year = True
 
@@ -3149,7 +3867,7 @@ def notes_library():
     subject = None
     if subject_id:
         # Get subject details
-        subject = execute_query("SELECT * FROM subjects WHERE id = ?" if not mysql_enabled() else "SELECT * FROM subjects WHERE id = %s", (int(subject_id),), fetchone=True)
+        subject = execute_query(f"SELECT * FROM subjects WHERE id = {get_placeholder()}", (int(subject_id),), fetchone=True)
         print(f"[DEBUG] Selected subject {subject_id}: {subject}")
     else:
         ensure_subjects_for_selection(scheme_id, semester_id, branch_id, cycle_id)
@@ -3255,14 +3973,12 @@ def download(filename):
         execute_query(update_query, (resource['id'],), commit=True)
 
         # If it's a Cloudinary file, redirect to its secure URL
-        if resource['cloudinary_public_id'] and resource['file_url']:
+        if is_remote_media_url(resource['file_url']):
             return redirect(resource['file_url'])
 
     # Otherwise serve locally
     try:
-        if filename.startswith('uploads/'):
-            filename = filename[len('uploads/'):]
-        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+        return send_from_directory(app.config['UPLOAD_FOLDER'], normalize_local_media_path(filename))
     except Exception:
         flash('File not found!', 'danger')
         return redirect(url_for('notes_library'))
@@ -3943,10 +4659,10 @@ def competitive_exams_download(resource_id):
     if resource:
         update_query = f"UPDATE exam_resources SET download_count = download_count + 1 WHERE id = {placeholder}"
         execute_query(update_query, (resource_id,), commit=True)
-        if resource['cloudinary_public_id']:
+        if is_remote_media_url(resource['file_url']):
             return redirect(resource['file_url'])
         try:
-            return send_from_directory(app.config['UPLOAD_FOLDER'], resource['file_url'])
+            return send_from_directory(app.config['UPLOAD_FOLDER'], normalize_local_media_path(resource['file_url']))
         except:
             flash('File not found!', 'danger')
             return redirect(url_for('competitive_exams_home'))
@@ -4040,10 +4756,10 @@ def school_notes_download(resource_id):
     if resource:
         update_query = f"UPDATE school_resources SET download_count = download_count + 1 WHERE id = {placeholder}"
         execute_query(update_query, (resource_id,), commit=True)
-        if resource['cloudinary_public_id']:
+        if is_remote_media_url(resource['file_url']):
             return redirect(resource['file_url'])
         try:
-            return send_from_directory(app.config['UPLOAD_FOLDER'], resource['file_url'])
+            return send_from_directory(app.config['UPLOAD_FOLDER'], normalize_local_media_path(resource['file_url']))
         except:
             flash('File not found!', 'danger')
             return redirect(url_for('school_notes_home'))
@@ -4338,7 +5054,7 @@ def debug_data_summary():
     """, fetchone=True)['count']
     
     summary = {
-        'database': 'SQLite' if not mysql_enabled() else 'MySQL',
+        'database': current_database_label(),
         'tables': {
             'schemes': schemes_count,
             'semesters': semesters_count,
@@ -4780,7 +5496,7 @@ def api_reset_password():
     placeholder = get_placeholder()
     token_record = execute_query(f'''
         SELECT * FROM password_reset_tokens 
-        WHERE token = {placeholder} AND used = 0 AND expires_at > NOW()
+        WHERE token = {placeholder} AND used = 0 AND expires_at > CURRENT_TIMESTAMP
     ''', (token,), fetchone=True)
     
     if not token_record:
@@ -4788,8 +5504,7 @@ def api_reset_password():
     
     # Update password
     hashed_password = generate_password_hash(new_password)
-    execute_query(f"UPDATE users SET password = {placeholder} WHERE id = {placeholder}", 
-                 (hashed_password, token_record['user_id']), commit=True)
+    persist_user_password_hash(token_record['user_id'], hashed_password)
     
     # Mark token as used
     execute_query(f"UPDATE password_reset_tokens SET used = 1 WHERE id = {placeholder}", 
@@ -4858,6 +5573,56 @@ def admin_api_activity_logs():
     })
 
 
+# Admin: Activity Logs UI
+@app.route('/admin/activity-logs')
+@admin_required
+def admin_activity_logs():
+    # Get logs
+    logs = execute_query(f'''
+        SELECT al.*, u.username as admin_name
+        FROM activity_logs al
+        LEFT JOIN users u ON al.admin_id = u.id
+        ORDER BY al.created_at DESC
+        LIMIT 100
+    ''', fetchall=True)
+    
+    return render_template('admin_activity_logs.html', logs=logs)
+
+
+# Admin: Contact Messages
+@app.route('/admin/contact')
+@admin_required
+def admin_contact():
+    # Get contact messages
+    messages = execute_query(f'''
+        SELECT * FROM contact_messages
+        ORDER BY created_at DESC
+    ''', fetchall=True)
+    
+    return render_template('admin_contact.html', messages=messages)
+
+
+# Admin: Mark Contact Message as Read
+@app.route('/admin/contact/<int:msg_id>/read', methods=['POST'])
+@admin_required
+def admin_mark_contact_read(msg_id):
+    admin_id = session.get('user_id')
+    placeholder = get_placeholder()
+    
+    execute_query(f'''
+        UPDATE contact_messages
+        SET status = 'read'
+        WHERE id = {placeholder}
+    ''', (msg_id,), commit=True)
+    
+    log_activity(admin_id=admin_id, action='Marked contact as read', 
+                details=f'Message ID: {msg_id}', 
+                ip_address=request.remote_addr)
+    
+    flash('Message marked as read!', 'success')
+    return redirect(url_for('admin_contact'))
+
+
 # Admin: Report Notes
 @app.route('/admin/report-notes')
 @admin_required
@@ -4887,7 +5652,7 @@ def admin_resolve_report(report_id):
     placeholder = get_placeholder()
     execute_query(f'''
         UPDATE report_notes
-        SET status = {placeholder}, resolved_by = {placeholder}, resolved_at = NOW()
+        SET status = {placeholder}, resolved_by = {placeholder}, resolved_at = CURRENT_TIMESTAMP
         WHERE id = {placeholder}
     ''', (action, admin_id, report_id), commit=True)
     

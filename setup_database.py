@@ -84,6 +84,7 @@ def init_db():
             username TEXT UNIQUE NOT NULL,
             email TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
+            password_hash TEXT,
             phone TEXT,
             college TEXT,
             branch_id INTEGER,
@@ -93,6 +94,7 @@ def init_db():
             profile_photo TEXT,
             profile_photo_public_id TEXT,
             role TEXT DEFAULT 'user',
+            is_admin INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -226,9 +228,9 @@ def init_db():
     if cursor.fetchone()[0] == 0:
         admin_pw = generate_password_hash('studynova@2026')
         cursor.execute('''
-            INSERT INTO users (username, email, password, role) 
-            VALUES (?, ?, ?, ?)
-        ''', ('StudyNova Admin', 'studynovaofficial@gmail.com', admin_pw, 'admin'))
+            INSERT INTO users (username, email, password, password_hash, role, is_admin) 
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', ('StudyNova Admin', 'studynovaofficial@gmail.com', admin_pw, admin_pw, 'admin', 1))
     
     # Create semesters for both schemes, including 8th semester
     schemes = cursor.execute("SELECT * FROM schemes").fetchall()

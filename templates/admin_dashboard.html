@@ -45,6 +45,15 @@
                         <a class="nav-link {% if request.endpoint == 'admin_storage' or request.endpoint == 'admin_download_backup' or request.endpoint == 'admin_restore_backup' %}active{% endif %}" href="{{ url_for('admin_storage') }}">
                             <i class="fas fa-database"></i> Storage & Backup
                         </a>
+                        <a class="nav-link {% if request.endpoint == 'admin_streams' %}active{% endif %}" href="{{ url_for('admin_streams') }}">
+                            <i class="fas fa-stream"></i> Streams
+                        </a>
+                        <a class="nav-link {% if request.endpoint == 'admin_activity_logs' %}active{% endif %}" href="{{ url_for('admin_activity_logs') }}">
+                            <i class="fas fa-history"></i> Activity Logs
+                        </a>
+                        <a class="nav-link {% if request.endpoint == 'admin_contact' %}active{% endif %}" href="{{ url_for('admin_contact') }}">
+                            <i class="fas fa-envelope"></i> Contact Messages
+                        </a>
                     </nav>
                 </div>
             </div>
