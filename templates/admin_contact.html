@@ -22,7 +22,7 @@
             <tbody>
                 {% for msg in messages %}
                 <tr>
-                    <td>{{ msg.created_at }}</td>
+                    <td>{{ msg.created_at|format_date }}</td>
                     <td>{{ msg.name }}</td>
                     <td><a href="mailto:{{ msg.email }}">{{ msg.email }}</a></td>
                     <td>{{ msg.subject }}</td>

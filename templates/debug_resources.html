@@ -66,7 +66,7 @@
                                 </span>
                             </td>
                             <td>{{ resource.uploader_name or '-' }}</td>
-                            <td>{{ resource.upload_date|string|first(10) }}</td>
+                            <td>{{ resource.upload_date|format_date }}</td>
                             <td>{{ resource.view_count }}</td>
                             <td>{{ resource.download_count }}</td>
                         </tr>

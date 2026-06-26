@@ -144,7 +144,7 @@
                         <td>{{ resource.id }}</td>
                         <td>{{ resource.title }}</td>
                         <td><span class="badge bg-info">{{ resource.resource_type }}</span></td>
-                        <td>{{ resource.upload_date|string|first(10) }}</td>
+                        <td>{{ resource.upload_date|format_date }}</td>
                         <td>{{ resource.view_count }}</td>
                         <td>{{ resource.download_count }}</td>
                     </tr>

@@ -139,7 +139,7 @@ def serve_upload(filename):
     # local file path.
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# Make execute_query available in templates
+# Make execute_query available in templates and add date format filter
 @app.context_processor
 def utility_processor():
     def media_url(path_or_url):
@@ -153,8 +153,49 @@ def utility_processor():
             return url_for('serve_upload', filename=path_or_url[len('uploads/'):])
         # Otherwise assume it's a filename stored in uploads
         return url_for('serve_upload', filename=path_or_url)
+    
+    def format_date(date_value, date_format='%Y-%m-%d'):
+        """Format date for display, handling both datetime objects and strings."""
+        if not date_value:
+            return ''
+        # If it's a datetime object, use strftime
+        if hasattr(date_value, 'strftime'):
+            return date_value.strftime(date_format)
+        # If it's a string, try to format it nicely
+        if isinstance(date_value, str):
+            # If it has a space, take first part (date only)
+            if ' ' in date_value:
+                return date_value.split(' ')[0]
+            # If it has a 'T', take first part
+            if 'T' in date_value:
+                return date_value.split('T')[0]
+            return date_value
+        # Otherwise, just convert to string
+        return str(date_value)
 
-    return dict(execute_query=execute_query, get_placeholder=get_placeholder, media_url=media_url)
+    return dict(execute_query=execute_query, get_placeholder=get_placeholder, media_url=media_url, format_date=format_date)
+
+
+# Register the format_date as a Jinja filter for easier use in templates
+@app.template_filter('format_date')
+def format_date_filter(date_value, date_format='%Y-%m-%d'):
+    """Format date for display, handling both datetime objects and strings."""
+    if not date_value:
+        return ''
+    # If it's a datetime object, use strftime
+    if hasattr(date_value, 'strftime'):
+        return date_value.strftime(date_format)
+    # If it's a string, try to format it nicely
+    if isinstance(date_value, str):
+        # If it has a space, take first part (date only)
+        if ' ' in date_value:
+            return date_value.split(' ')[0]
+        # If it has a 'T', take first part
+        if 'T' in date_value:
+            return date_value.split('T')[0]
+        return date_value
+    # Otherwise, just convert to string
+    return str(date_value)
 
 
 MYSQL_CONFIG = {

@@ -136,7 +136,7 @@
                     <td>{{ note.subject_name or 'General' }}</td>
                     <td>{{ get_resource_type_label(note.resource_type) }}</td>
                     <td>{{ note.file_url.split('/')[-1] if note.file_url else '' }}</td>
-                    <td>{{ note.upload_date.split(' ')[0] if note.upload_date else '' }}</td>
+                    <td>{{ note.upload_date|format_date }}</td>
                     <td><span class="badge bg-{{ get_status_badge(note.is_approved) }}">{{ get_status_label(note.is_approved) }}</span></td>
                     <td>
                         <div class="btn-group" role="group">
