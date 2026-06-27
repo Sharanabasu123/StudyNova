@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="StudyNova - Your Ultimate Academic Resource Platform">
-    <meta name="theme-color" content="#4e73df">
+    <meta name="theme-color" content="#6a0dad">
     
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="/manifest.json">
@@ -20,139 +20,400 @@
     <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
     
     <title>{% block title %}StudyNova{% endblock %}</title>
+    <style>
+        :root {
+            --primary-purple: #6a0dad;
+            --dark-purple: #4b0082;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding-bottom: 80px;
+        }
+        /* Announcement Banner */
+        .announcement-banner {
+            background: linear-gradient(135deg, var(--primary-purple), var(--dark-purple));
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        /* Header */
+        .header {
+        background: white;
+        padding: 10px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        position: sticky;
+        top: 0;
+        z-index: 999;
+    }
+        .menu-btn, .search-btn {
+            font-size: 24px;
+            color: var(--primary-purple);
+            cursor: pointer;
+        }
+        .logo-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+        }
+        .logo {
+            max-height: 50px;
+        }
+        /* Side Navigation */
+        .side-nav-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            display: none;
+        }
+        .side-nav-overlay.active {
+            display: block;
+        }
+        .side-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 85%;
+            max-width: 320px;
+            height: 100%;
+            background: white;
+            z-index: 2001;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+        .side-nav.active {
+            transform: translateX(0);
+        }
+        .side-nav-header {
+            background: linear-gradient(135deg, var(--primary-purple), var(--dark-purple));
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .side-nav-close {
+            font-size: 28px;
+            cursor: pointer;
+        }
+        .side-nav-menu {
+            padding: 10px 0;
+        }
+        .side-nav-item {
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .side-nav-item:hover {
+            background-color: #f8f8f8;
+        }
+        .side-nav-item i {
+            color: var(--primary-purple);
+            font-size: 20px;
+            width: 24px;
+        }
+        .side-nav-item span {
+            font-weight: 500;
+            color: #333;
+        }
+        .side-nav-divider {
+            border-bottom: 2px solid #f0f0f0;
+            margin: 10px 0;
+        }
+        /* Floating Buttons */
+        .floating-buttons {
+            position: fixed;
+            right: 15px;
+            bottom: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 998;
+        }
+        .floating-btn {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 22px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            cursor: pointer;
+        }
+        .floating-btn.search {
+            background: var(--primary-purple);
+        }
+        .floating-btn.support {
+            background: #ff4757;
+        }
+        .floating-btn.whatsapp {
+            background: #25d366;
+        }
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 10px 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 999;
+        }
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: #666;
+        }
+        .bottom-nav-item.active {
+            color: var(--primary-purple);
+        }
+        .bottom-nav-item i {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+        .bottom-nav-item span {
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .center-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-purple), var(--dark-purple));
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: -30px;
+            box-shadow: 0 4px 15px rgba(106, 13, 173, 0.4);
+        }
+        .center-btn i {
+            font-size: 28px;
+            color: white;
+            margin: 0;
+        }
+        /* Main Content */
+        .main-content {
+            padding: 15px;
+        }
+        /* Footer */
+        footer {
+            background: white;
+            padding: 30px 20px;
+            text-align: center;
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+        }
+    </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="/">
-                <i class="fas fa-graduation-cap me-2"></i>StudyNova
-            </a>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/"><i class="fas fa-home me-1"></i>Home</a>
-                    </li>
-                    
-                    {% if session.get('user_email') %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="/dashboard"><i class="fas fa-tachometer-alt me-1"></i>Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/notes"><i class="fas fa-book me-1"></i>Notes</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/competitive-exams"><i class="fas fa-trophy me-1"></i>Competitive Exams</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/school-notes"><i class="fas fa-school me-1"></i>School Notes</a>
-                    </li>
-                    {% endif %}
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="/about"><i class="fas fa-info-circle me-1"></i>About</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/contact"><i class="fas fa-envelope me-1"></i>Contact</a>
-                    </li>
-                </ul>
-                
-                <ul class="navbar-nav">
-                    {% if session.get('user_email') %}
-                        {% if session.get('user_role') == 'admin' %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="/admin"><i class="fas fa-cog me-1"></i>Admin</a>
-                        </li>
-                        {% endif %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-user-circle me-1"></i>{{ session.get('user_name') }}
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="/profile"><i class="fas fa-user me-2"></i>Profile</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="/logout"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                            </ul>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="/login"><i class="fas fa-sign-in-alt me-1"></i>Login</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/register"><i class="fas fa-user-plus me-1"></i>Register</a>
-                        </li>
-                    {% endif %}
-                </ul>
+    <!-- Announcement Banner -->
+    <!-- <div class="announcement-banner" id="announcementBanner">
+        <div>
+            <i class="fas fa-broadcast-tower me-2"></i>
+            <span>New Updates Available! Check the notifications section.</span>
+        </div>
+        <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer;" onclick="closeAnnouncement()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div> -->
+
+    <!-- Header -->
+    <div class="header">
+        <div class="menu-btn" onclick="openSideNav()">
+            <i class="fas fa-bars"></i>
+        </div>
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='images/Studynovalogo.jpeg') }}" alt="StudyNova" class="logo">
+        </div>
+        <div class="search-btn" onclick="openSearch()">
+            <i class="fas fa-search"></i>
+        </div>
+    </div>
+
+    <!-- Side Navigation Overlay -->
+    <div class="side-nav-overlay" id="sideNavOverlay" onclick="closeSideNav()"></div>
+
+    <!-- Side Navigation -->
+    <div class="side-nav" id="sideNav">
+        <div class="side-nav-header">
+            <div>
+                <h4 style="margin: 0;">StudyNova</h4>
+                <p style="margin: 5px 0 0; opacity: 0.8;">Your VTU Companion</p>
+            </div>
+            <div class="side-nav-close" onclick="closeSideNav()">
+                <i class="fas fa-times"></i>
             </div>
         </div>
-    </nav>
-
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="container mt-3">
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
+        <div class="side-nav-menu">
+            <div class="side-nav-item" onclick="window.location.href='/'">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
             </div>
-        {% endif %}
-    {% endwith %}
+            
+            <div class="side-nav-item">
+                <i class="fas fa-book"></i>
+                <span>Study Notes</span>
+                <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 14px; color: #999;"></i>
+            </div>
+            
+            <div class="side-nav-item">
+                <i class="fas fa-graduation-cap"></i>
+                <span>First Year</span>
+                <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 14px; color: #999;"></i>
+            </div>
+            
+            <div class="side-nav-item">
+                <i class="fas fa-laptop-code"></i>
+                <span>CSE-ISE</span>
+                <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 14px; color: #999;"></i>
+            </div>
+            
+            <div class="side-nav-item">
+                <i class="fas fa-robot"></i>
+                <span>AIML-DS</span>
+                <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 14px; color: #999;"></i>
+            </div>
+            
+            <div class="side-nav-item">
+                <i class="fas fa-microchip"></i>
+                <span>ECE</span>
+                <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 14px; color: #999;"></i>
+            </div>
+            
+            <div class="side-nav-item">
+                <i class="fas fa-bolt"></i>
+                <span>EEE</span>
+                <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 14px; color: #999;"></i>
+            </div>
+            
+            <div class="side-nav-item">
+                <i class="fas fa-cogs"></i>
+                <span>MECH</span>
+                <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 14px; color: #999;"></i>
+            </div>
+            
+            <div class="side-nav-item">
+                <i class="fas fa-building"></i>
+                <span>CIVIL</span>
+                <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 14px; color: #999;"></i>
+            </div>
+            
+            <div class="side-nav-item">
+                <i class="fas fa-flask"></i>
+                <span>Laboratory</span>
+                <i class="fas fa-chevron-right" style="margin-left: auto; font-size: 14px; color: #999;"></i>
+            </div>
+            
+            <div class="side-nav-item">
+                <i class="fas fa-bell"></i>
+                <span>VTU Updates</span>
+                <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 14px; color: #999;"></i>
+            </div>
+            
+            <div class="side-nav-divider"></div>
+            
+            <div class="side-nav-item" onclick="window.location.href='/syllabus'">
+                <i class="fas fa-book-open"></i>
+                <span>VTU Syllabus</span>
+            </div>
+            
+            <div class="side-nav-item" style="color: var(--primary-purple);">
+                <i class="fas fa-file-alt" style="color: var(--primary-purple);"></i>
+                <span style="color: var(--primary-purple); font-weight: 600;">VTU Papers</span>
+            </div>
+            
+            <div class="side-nav-item">
+                <i class="fas fa-file-pdf"></i>
+                <span>VTU Reports</span>
+            </div>
+            
+            <div class="side-nav-divider"></div>
+            
+            <div class="side-nav-item" onclick="window.location.href='/upload'">
+                <i class="fas fa-upload"></i>
+                <span>Upload Materials</span>
+            </div>
+            
+            <div class="side-nav-item" style="background: #ff4757; border-radius: 10px; margin: 0 10px; border-bottom: none;" onclick="window.location.href='/support'">
+                <i class="fas fa-hand-holding-heart" style="color: white;"></i>
+                <span style="color: white;">Support Us</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Buttons -->
+    <div class="floating-buttons">
+        <div class="floating-btn search" onclick="openSearch()">
+            <i class="fas fa-search"></i>
+        </div>
+        <div class="floating-btn support" onclick="window.location.href='/support'">
+            <i class="fas fa-hand-holding-heart"></i>
+        </div>
+        <div class="floating-btn whatsapp" onclick="window.open('https://wa.me/', '_blank')">
+            <i class="fab fa-whatsapp"></i>
+        </div>
+    </div>
 
     <!-- Main Content -->
-    <main class="container py-4">
+    <div class="main-content">
         {% block content %}{% endblock %}
-    </main>
+    </div>
 
     <!-- Footer -->
-    <footer class="bg-light py-4 mt-5">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5><i class="fas fa-graduation-cap me-2"></i>StudyNova</h5>
-                    <p class="text-muted">Your Ultimate Academic Resource Platform</p>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <p class="text-muted mb-0">© 2024 StudyNova. All rights reserved.</p>
-                    <p class="text-muted">
-                        <a href="/about" class="text-decoration-none">About</a> | 
-                        <a href="/contact" class="text-decoration-none">Contact</a>
-                    </p>
-                </div>
-            </div>
-        </div>
+    <footer>
+        <p style="margin: 0; font-weight: 500;">Designed & Developed by StudyNova Team</p>
+        <p style="margin: 5px 0 0; color: #666;">Copyright © 2026 StudyNova</p>
     </footer>
 
-    <!-- Bottom Navigation for Mobile -->
-    {% if session.get('user_email') %}
-    <nav class="navbar fixed-bottom navbar-light bg-white border-top d-md-none">
-        <div class="container-fluid">
-            <a class="nav-link text-center text-dark" href="/dashboard">
-                <i class="fas fa-home fa-lg"></i>
-                <small>Home</small>
-            </a>
-            <a class="nav-link text-center text-dark" href="/notes">
-                <i class="fas fa-book fa-lg"></i>
-                <small>Notes</small>
-            </a>
-            <a class="nav-link text-center text-dark" href="/upload">
-                <i class="fas fa-upload fa-lg"></i>
-                <small>Upload</small>
-            </a>
-            <a class="nav-link text-center text-dark" href="/profile">
-                <i class="fas fa-user fa-lg"></i>
-                <small>Profile</small>
-            </a>
-        </div>
-    </nav>
-    {% endif %}
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <a href="/syllabus" class="bottom-nav-item">
+            <i class="fas fa-book"></i>
+            <span>Syllabus</span>
+        </a>
+        <a href="/papers" class="bottom-nav-item active">
+            <i class="fas fa-file-alt"></i>
+            <span>Papers</span>
+        </a>
+        <a href="/" class="bottom-nav-item">
+            <div class="center-btn">
+                <i class="fas fa-th-large"></i>
+            </div>
+        </a>
+        <a href="#" class="bottom-nav-item">
+            <i class="fas fa-chart-line"></i>
+            <span>Updates</span>
+        </a>
+        <a href="#" class="bottom-nav-item">
+            <i class="fas fa-chart-pie"></i>
+            <span>Reports</span>
+        </a>
+    </div>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -165,6 +426,25 @@
                     .then(reg => console.log('Service Worker registered'))
                     .catch(err => console.log('Service Worker registration failed:', err));
             });
+        }
+        
+        function openSideNav() {
+            document.getElementById('sideNav').classList.add('active');
+            document.getElementById('sideNavOverlay').classList.add('active');
+        }
+        
+        function closeSideNav() {
+            document.getElementById('sideNav').classList.remove('active');
+            document.getElementById('sideNavOverlay').classList.remove('active');
+        }
+        
+        function closeAnnouncement() {
+            document.getElementById('announcementBanner').style.display = 'none';
+            document.querySelector('.header').style.top = '0';
+        }
+        
+        function openSearch() {
+            alert('Search functionality coming soon!');
         }
     </script>
     

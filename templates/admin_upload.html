@@ -46,19 +46,10 @@
             </div>
             <div class="mb-3">
                 <label class="form-label">Content Type *</label>
-                <select name="resource_type" class="form-select" id="categorySelect" required>
-                    <option value="">Select Content Type</option>
-                    <option value="module1">Module 1 Notes</option>
-                    <option value="module2">Module 2 Notes</option>
-                    <option value="module3">Module 3 Notes</option>
-                    <option value="module4">Module 4 Notes</option>
-                    <option value="module5">Module 5 Notes</option>
-                    <option value="important_questions">Important Questions</option>
-                    <option value="lab_manual">Lab Manual</option>
-                    <option value="pyq">Question Paper</option>
-                    <option value="solutions">Question Paper Solution</option>
-                    <option value="passing_package">Passing Package</option>
+                <select name="resource_type" class="form-select" id="categorySelect" required disabled>
+                    <option value="">Select branch, semester and subject first</option>
                 </select>
+                <div class="form-text">The available content types depend on the selected subject. Lab Manual appears only for lab subjects.</div>
             </div>
             <div class="mb-3">
                 <label class="form-label">Upload File *</label>
@@ -84,10 +75,43 @@ document.addEventListener('DOMContentLoaded', function() {
     const categorySelect = document.getElementById('categorySelect');
     const cycleField = document.getElementById('cycleField');
     const branchField = document.getElementById('branchField');
+    const theoryOptions = [
+        ['module1', 'Module 1 Notes'],
+        ['module2', 'Module 2 Notes'],
+        ['module3', 'Module 3 Notes'],
+        ['module4', 'Module 4 Notes'],
+        ['module5', 'Module 5 Notes'],
+        ['important_questions', 'Important Questions'],
+        ['pyq', 'Question Paper'],
+        ['solutions', 'Question Paper Solution'],
+        ['passing_package', 'Passing Package']
+    ];
+    const labOptions = [
+        ['lab_manual', 'Lab Manual']
+    ];
 
     function resetSelect(select, label, disabled = true) {
         select.innerHTML = `<option value="">${label}</option>`;
         select.disabled = disabled;
+    }
+
+    function updateCategoryOptions() {
+        const selectedSubject = subjectSelect.options[subjectSelect.selectedIndex];
+        const isLabSubject = selectedSubject && selectedSubject.dataset.isLab === '1';
+
+        if (!subjectSelect.value) {
+            resetSelect(categorySelect, 'Select branch, semester and subject first', true);
+            return;
+        }
+
+        resetSelect(categorySelect, 'Select Content Type', false);
+        const options = isLabSubject ? labOptions : theoryOptions;
+        for (const [value, label] of options) {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = label;
+            categorySelect.appendChild(option);
+        }
     }
 
     async function fetchJson(url) {
@@ -103,6 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
         resetSelect(semesterSelect, 'Select Semester');
         resetSelect(branchSelect, 'Select Branch');
         resetSelect(subjectSelect, 'Select Subject');
+        resetSelect(categorySelect, 'Select branch, semester and subject first');
         cycleSelect.disabled = true;
         cycleSelect.value = '';
         if (schemeId) {
@@ -129,6 +154,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const semesterId = parseInt(semesterSelect.value) || null;
         resetSelect(branchSelect, 'Select Branch');
         resetSelect(subjectSelect, 'Select Subject');
+        resetSelect(categorySelect, 'Select branch, semester and subject first');
         if (!schemeId || !semesterId) {
             return;
         }
@@ -155,6 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const branchId = parseInt(branchSelect.value) || null;
 
         resetSelect(subjectSelect, 'Select Subject');
+        resetSelect(categorySelect, 'Select branch, semester and subject first');
         if (!schemeId || !semesterId || !branchId) {
             return;
         }
@@ -166,6 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
             for (const sub of subjects) {
                 const option = document.createElement('option');
                 option.value = sub.id;
+                option.dataset.isLab = sub.is_lab ? '1' : '0';
                 option.textContent = `${sub.code} - ${sub.name}`;
                 subjectSelect.appendChild(option);
             }
@@ -206,6 +234,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     branchSelect.addEventListener('change', updateSubjects);
+    subjectSelect.addEventListener('change', updateCategoryOptions);
 });
 </script>
 {% endblock %}

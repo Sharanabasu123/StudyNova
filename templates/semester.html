@@ -1,0 +1,137 @@
+{% extends 'layout.html' %}
+
+{% block title %}{{ semester_name }} - StudyNova{% endblock %}
+
+{% block content %}
+<style>
+    .semester-header {
+        padding: 20px 15px;
+        text-align: left;
+    }
+    .semester-header h1 {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 0;
+        color: #000;
+    }
+    .subject-card {
+        background: white;
+        border-radius: 20px;
+        padding: 0;
+        margin: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        border: 1px solid #ddd;
+        overflow: hidden;
+        cursor: pointer;
+    }
+    .subject-banner {
+        width: 100%;
+        background: linear-gradient(135deg, #000 0%, #222 100%);
+        position: relative;
+    }
+    .subject-banner::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 20% 30%, rgba(106,13,173,0.3) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 70%, rgba(106,13,173,0.2) 0%, transparent 50%);
+    }
+    .subject-banner-content {
+        position: relative;
+        padding: 60px 20px;
+        text-align: center;
+        color: white;
+    }
+    .subject-banner-content h2 {
+        font-size: 28px;
+        font-weight: 900;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        margin: 0;
+    }
+    .subject-banner-content .watermark {
+        position: absolute;
+        bottom: 10px;
+        right: 15px;
+        color: rgba(255,255,255,0.7);
+        font-weight: 500;
+    }
+    .subject-title {
+        padding: 15px;
+        text-align: center;
+    }
+    .subject-title h3 {
+        font-size: 20px;
+        font-weight: bold;
+        margin: 0;
+        color: #6a0dad;
+    }
+</style>
+
+<div class="semester-header">
+    <h1>4th Semester 2022 Scheme CSE-ISE</h1>
+</div>
+
+<div class="subject-card" onclick="window.location.href='/subject/1'">
+    <div class="subject-banner">
+        <div class="subject-banner-content">
+            <h2>Analysis and Design of Algorithms</h2>
+            <div class="watermark">studynova.com</div>
+        </div>
+    </div>
+    <div class="subject-title">
+        <h3>Analysis and Design of Algorithms BCS401</h3>
+    </div>
+</div>
+
+<div class="subject-card" onclick="window.location.href='/subject/2'">
+    <div class="subject-banner">
+        <div class="subject-banner-content">
+            <h2>Microcontroller</h2>
+            <div class="watermark">studynova.com</div>
+        </div>
+    </div>
+    <div class="subject-title">
+        <h3>Microcontrollers BCS402</h3>
+    </div>
+</div>
+
+<div class="subject-card" onclick="window.location.href='/subject/3'">
+    <div class="subject-banner">
+        <div class="subject-banner-content">
+            <h2>Database Management Systems</h2>
+            <div class="watermark">studynova.com</div>
+        </div>
+    </div>
+    <div class="subject-title">
+        <h3>Database Management System BCS403</h3>
+    </div>
+</div>
+
+<div class="subject-card" onclick="window.location.href='/subject/4'">
+    <div class="subject-banner">
+        <div class="subject-banner-content">
+            <h2>Analysis and Design of Algorithms Laboratory</h2>
+            <div class="watermark">studynova.com</div>
+        </div>
+    </div>
+    <div class="subject-title">
+        <h3>Analysis and Design of Algorithms Laboratory BCSL404</h3>
+    </div>
+</div>
+
+<div class="subject-card" onclick="window.location.href='/subject/5'">
+    <div class="subject-banner">
+        <div class="subject-banner-content">
+            <h2>Discrete Mathematical Structures</h2>
+            <div class="watermark">studynova.com</div>
+        </div>
+    </div>
+    <div class="subject-title">
+        <h3>Discrete Mathematical Structures BCS405</h3>
+    </div>
+</div>
+
+{% endblock %}

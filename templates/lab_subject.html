@@ -1,0 +1,56 @@
+{% extends 'layout.html' %}
+
+{% block title %}{{ subject.name }} - StudyNova{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+      <img src="{{ subject.subject_image_url or 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80' }}" class="card-img-top" alt="{{ subject.name }}" style="height: 220px; object-fit: cover;">
+      <div class="card-body">
+        <span class="badge rounded-pill bg-primary mb-2">{{ subject.code }}</span>
+        <h1 class="h3 mb-2">{{ subject.name }}</h1>
+        <p class="text-muted">{{ subject.description or 'Interactive lab portal with question, code, output, and viva practice.' }}</p>
+        <div class="row g-2 small text-muted">
+          <div class="col-6"><strong>Branch:</strong> {{ subject.branch }}</div>
+          <div class="col-6"><strong>Semester:</strong> {{ subject.semester }}</div>
+          <div class="col-6"><strong>Credits:</strong> {{ subject.credits }}</div>
+          <div class="col-6"><strong>Scheme:</strong> {{ subject.scheme }}</div>
+          <div class="col-6"><strong>CIE:</strong> {{ subject.cie_marks }}</div>
+          <div class="col-6"><strong>SEE:</strong> {{ subject.see_marks }}</div>
+          <div class="col-6"><strong>Total:</strong> {{ subject.total_marks }}</div>
+          <div class="col-6"><strong>Hours:</strong> L{{ subject.teaching_hours_l }}:T{{ subject.teaching_hours_t }}:P{{ subject.teaching_hours_p }}:S{{ subject.teaching_hours_s }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h2 class="h4 mb-1">Programs</h2>
+        <p class="text-muted mb-0">Open any published program and explore code, output, and viva questions.</p>
+      </div>
+      <a href="{{ url_for('labs') }}" class="btn btn-outline-secondary btn-sm">Back to Labs</a>
+    </div>
+
+    {% if programs %}
+    <div class="list-group shadow-sm rounded-4 overflow-hidden">
+      {% for program in programs %}
+      <a href="{{ url_for('lab_program', subject_id=subject.id, program_id=program.id) }}" class="list-group-item list-group-item-action p-4">
+        <div class="d-flex justify-content-between align-items-start gap-3">
+          <div>
+            <div class="fw-bold text-primary">Program {{ program.program_number }}</div>
+            <div class="text-dark">{{ program.question }}</div>
+          </div>
+          <span class="badge bg-primary-subtle text-primary rounded-pill">Open</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info rounded-4">No published programs yet for this subject. Admin can add them from the management panel.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

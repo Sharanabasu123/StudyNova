@@ -3,135 +3,543 @@
 {% block title %}About StudyNova{% endblock %}
 
 {% block content %}
-<section class="page-header py-5 bg-primary text-white text-center" style="background: linear-gradient(135deg, var(--dark-blue) 0%, var(--primary-color) 100%);">
-    <div class="container">
-        <h1 data-aos="fade-down">About StudyNova</h1>
-        <p class="lead" data-aos="fade-up">Our mission is to make education accessible for everyone.</p>
-    </div>
-</section>
+<style>
+    .about-page {
+        position: relative;
+        overflow: hidden;
+        background:
+            radial-gradient(circle at top left, rgba(67, 97, 238, 0.18), transparent 32%),
+            radial-gradient(circle at top right, rgba(114, 9, 183, 0.16), transparent 28%),
+            radial-gradient(circle at bottom center, rgba(76, 201, 240, 0.14), transparent 30%);
+    }
 
-<section class="about-content py-5">
-    <div class="container">
-        <div class="row align-items-center mb-5">
-            <div class="col-lg-6" data-aos="fade-right">
-                <h2 class="section-title">Our Vision</h2>
-                <p>StudyNova was born from a simple idea: students helping students. We believe that quality education should be accessible to everyone, regardless of their background or financial status. Our platform provides a centralized hub for students to share their hard-earned knowledge through notes, presentations, and study materials.</p>
-                <div class="row mt-4">
-                    <div class="col-6">
-                        <div class="glass-card text-center p-3">
-                            <i class="fas fa-rocket fa-2x text-primary mb-2"></i>
-                            <h5>Mission</h5>
-                            <p class="small">To empower students with free resources.</p>
-                        </div>
+    .about-hero {
+        position: relative;
+        overflow: hidden;
+        padding: 5rem 0 4rem;
+        border-radius: 0 0 32px 32px;
+        background: linear-gradient(135deg, #1d4ed8 0%, #7209b7 52%, #c026d3 100%);
+        color: #fff;
+    }
+
+    .about-hero::before,
+    .about-hero::after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(10px);
+        opacity: 0.35;
+        animation: floatOrb 7s ease-in-out infinite;
+    }
+
+    .about-hero::before {
+        width: 280px;
+        height: 280px;
+        top: -80px;
+        right: -60px;
+        background: rgba(255, 255, 255, 0.22);
+    }
+
+    .about-hero::after {
+        width: 220px;
+        height: 220px;
+        bottom: -80px;
+        left: -50px;
+        background: rgba(255, 255, 255, 0.16);
+        animation-delay: 1.2s;
+    }
+
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.7rem 1rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        backdrop-filter: blur(10px);
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-bottom: 1.25rem;
+        animation: fadeUp 0.8s ease both;
+    }
+
+    .about-hero h1 {
+        font-size: clamp(2.5rem, 6vw, 4.4rem);
+        font-weight: 800;
+        line-height: 1.05;
+        margin-bottom: 1rem;
+        animation: fadeUp 0.9s ease both;
+    }
+
+    .hero-text {
+        font-size: 1.1rem;
+        max-width: 640px;
+        opacity: 0.95;
+        animation: fadeUp 1s ease both;
+    }
+
+    .hero-visual {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        animation: fadeScale 1s ease both;
+    }
+
+    .logo-shell {
+        width: min(320px, 78vw);
+        aspect-ratio: 1;
+        padding: 1.2rem;
+        border-radius: 32px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        backdrop-filter: blur(16px);
+        box-shadow: 0 24px 60px rgba(10, 10, 35, 0.24);
+        transform: rotate(-5deg);
+    }
+
+    .logo-shell img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 24px;
+        display: block;
+    }
+
+    .floating-pill {
+        position: absolute;
+        padding: 0.7rem 1rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        backdrop-filter: blur(10px);
+        font-size: 0.9rem;
+        font-weight: 700;
+        box-shadow: 0 12px 30px rgba(10, 10, 35, 0.18);
+    }
+
+    .pill-top {
+        top: 8%;
+        right: -2%;
+        animation: floatOrb 6s ease-in-out infinite;
+    }
+
+    .pill-bottom {
+        left: -6%;
+        bottom: 10%;
+        animation: floatOrb 8s ease-in-out infinite;
+    }
+
+    .about-section {
+        padding: 4.5rem 0 5rem;
+    }
+
+    .vision-card,
+    .info-card,
+    .stat-card {
+        border: 1px solid rgba(124, 58, 237, 0.12);
+        border-radius: 24px;
+        box-shadow: 0 18px 45px rgba(31, 41, 55, 0.08);
+        transition: transform 0.35s ease, box-shadow 0.35s ease;
+    }
+
+    .vision-card:hover,
+    .info-card:hover,
+    .stat-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 24px 54px rgba(79, 70, 229, 0.16);
+    }
+
+    .vision-card {
+        padding: 2rem;
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(244, 247, 255, 0.96));
+    }
+
+    .section-kicker {
+        color: #7c3aed;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .section-title {
+        font-size: clamp(2rem, 3vw, 2.9rem);
+        font-weight: 800;
+        color: #111827;
+        margin-bottom: 1rem;
+    }
+
+    .section-copy {
+        color: #4b5563;
+        font-size: 1.04rem;
+        line-height: 1.8;
+    }
+
+    .stat-card {
+        height: 100%;
+        padding: 1.4rem 1rem;
+        text-align: center;
+        color: #fff;
+    }
+
+    .stat-card i {
+        font-size: 1.9rem;
+        margin-bottom: 0.85rem;
+    }
+
+    .stat-card h5 {
+        font-weight: 700;
+        margin-bottom: 0.45rem;
+    }
+
+    .stat-card p {
+        margin: 0;
+        font-size: 0.92rem;
+        opacity: 0.95;
+    }
+
+    .stat-mission {
+        background: linear-gradient(135deg, #2563eb, #4f46e5);
+    }
+
+    .stat-vision {
+        background: linear-gradient(135deg, #7c3aed, #c026d3);
+    }
+
+    .info-wrap {
+        padding: 2.5rem;
+        border-radius: 30px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(244, 247, 255, 0.94));
+        border: 1px solid rgba(99, 102, 241, 0.1);
+        backdrop-filter: blur(12px);
+    }
+
+    .info-card {
+        height: 100%;
+        padding: 1.8rem;
+        background: #fff;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .info-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto auto 0;
+        width: 100%;
+        height: 4px;
+    }
+
+    .info-card-blue::before {
+        background: linear-gradient(90deg, #2563eb, #38bdf8);
+    }
+
+    .info-card-purple::before {
+        background: linear-gradient(90deg, #7c3aed, #d946ef);
+    }
+
+    .info-card-green::before {
+        background: linear-gradient(90deg, #059669, #22c55e);
+    }
+
+    .info-card-pink::before {
+        background: linear-gradient(90deg, #e11d48, #f97316);
+    }
+
+    .icon-badge {
+        width: 58px;
+        height: 58px;
+        border-radius: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        color: #fff;
+        font-size: 1.35rem;
+        box-shadow: 0 12px 28px rgba(79, 70, 229, 0.16);
+    }
+
+    .icon-blue {
+        background: linear-gradient(135deg, #2563eb, #38bdf8);
+    }
+
+    .icon-purple {
+        background: linear-gradient(135deg, #7c3aed, #d946ef);
+    }
+
+    .icon-green {
+        background: linear-gradient(135deg, #059669, #22c55e);
+    }
+
+    .icon-pink {
+        background: linear-gradient(135deg, #e11d48, #f97316);
+    }
+
+    .info-card h3 {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 0.8rem;
+    }
+
+    .info-card p {
+        color: #4b5563;
+        line-height: 1.8;
+        margin-bottom: 0;
+    }
+
+    .social-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.9rem;
+    }
+
+    .social-buttons .btn {
+        border-radius: 999px;
+        padding: 0.8rem 1.2rem;
+        font-weight: 600;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .social-buttons .btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 24px rgba(31, 41, 55, 0.12);
+    }
+
+    .animate-card {
+        opacity: 0;
+        transform: translateY(28px);
+        animation: fadeUp 0.8s ease forwards;
+    }
+
+    .delay-1 {
+        animation-delay: 0.1s;
+    }
+
+    .delay-2 {
+        animation-delay: 0.2s;
+    }
+
+    .delay-3 {
+        animation-delay: 0.3s;
+    }
+
+    .delay-4 {
+        animation-delay: 0.4s;
+    }
+
+    @keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(28px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeScale {
+        from {
+            opacity: 0;
+            transform: scale(0.94);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    @keyframes floatOrb {
+        0%, 100% {
+            transform: translateY(0px);
+        }
+        50% {
+            transform: translateY(-14px);
+        }
+    }
+
+    @media (prefers-color-scheme: dark) {
+        .about-page {
+            background:
+                radial-gradient(circle at top left, rgba(67, 97, 238, 0.24), transparent 32%),
+                radial-gradient(circle at top right, rgba(114, 9, 183, 0.22), transparent 28%),
+                linear-gradient(180deg, #0f172a, #111827);
+        }
+
+        .vision-card,
+        .info-wrap,
+        .info-card {
+            background: rgba(17, 24, 39, 0.86);
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .section-title,
+        .info-card h3 {
+            color: #f9fafb;
+        }
+
+        .section-copy,
+        .info-card p {
+            color: #d1d5db;
+        }
+    }
+
+    @media (max-width: 991px) {
+        .about-hero {
+            text-align: center;
+        }
+
+        .hero-text {
+            margin: 0 auto;
+        }
+
+        .hero-visual {
+            margin-top: 2rem;
+        }
+
+        .pill-top {
+            right: 6%;
+        }
+
+        .pill-bottom {
+            left: 6%;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .about-hero {
+            padding: 4rem 0 3.5rem;
+        }
+
+        .info-wrap {
+            padding: 1.25rem;
+        }
+
+        .vision-card,
+        .info-card {
+            padding: 1.25rem;
+        }
+
+        .social-buttons .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="about-page">
+    <section class="about-hero">
+        <div class="container">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-7">
+                    <div class="hero-badge">
+                        <i class="fas fa-sparkles"></i>
+                        Smarter Learning Starts Here
                     </div>
-                    <div class="col-6">
-                        <div class="glass-card text-center p-3">
-                            <i class="fas fa-eye fa-2x text-primary mb-2"></i>
-                            <h5>Vision</h5>
-                            <p class="small">To be the global hub for student notes.</p>
+                    <h1>About StudyNova</h1>
+                    <p class="hero-text">StudyNova is built to make VTU education simpler, more organized, and more accessible with a modern platform for notes, lab programs, syllabus content, previous year papers, and placement resources.</p>
+                </div>
+                <div class="col-lg-5">
+                    <div class="hero-visual">
+                        <div class="logo-shell">
+                            <img src="{{ url_for('static', filename='images/Studynovalogo.jpeg') }}" alt="StudyNova Logo">
+                        </div>
+                        <div class="floating-pill pill-top">
+                            <i class="fas fa-book-open me-2"></i>Notes
+                        </div>
+                        <div class="floating-pill pill-bottom">
+                            <i class="fas fa-code me-2"></i>Labs
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-lg-6" data-aos="fade-left">
-                <img src="https://cdni.iconscout.com/illustration/premium/thumb/about-us-1805547-1537820.png" alt="About StudyNova" class="img-fluid">
             </div>
         </div>
+    </section>
 
-        <div class="developer-section py-5 bg-light rounded-4 p-5" data-aos="fade-up">
-            <div class="row align-items-center">
-                <div class="col-lg-4 text-center mb-4 mb-lg-0">
-                    <div class="dev-img-wrapper">
-                        {% if developer and developer.profile_url %}
-                        <img src="{{ developer.profile_url }}" alt="{{ developer.name }}" class="rounded-circle shadow-lg border border-5 border-white img-fluid" style="width: 250px; height: 250px; object-fit: cover;">
-                        {% else %}
-                        <img src="{{ url_for('static', filename='images/Blaser photo.jpeg') }}" alt="Sharanabasu Malasidda Police Patil" class="rounded-circle shadow-lg border border-5 border-white img-fluid" style="width: 250px; height: 250px; object-fit: cover;">
-                        {% endif %}
+    <section class="about-section">
+        <div class="container">
+            <div class="row align-items-center g-4 mb-5">
+                <div class="col-lg-7 animate-card delay-1">
+                    <div class="vision-card">
+                        <div class="section-kicker">Our Vision</div>
+                        <h2 class="section-title">A colorful and organized academic space for every student</h2>
+                        <p class="section-copy">StudyNova was created with a simple goal: help students find the right academic content in one place without confusion. Instead of jumping between multiple websites, chats, and folders, students get a cleaner and faster experience built for real academic needs.</p>
                     </div>
                 </div>
-                <div class="col-lg-8">
-                    <h2 class="mb-3">Meet the Developer</h2>
-                    <h4>{{ developer.name if developer else 'Sharanabasu Malasidda Police Patil' }}</h4>
-                    <p class="text-primary font-weight-bold">{{ developer.title if developer and developer.title else 'Founder & CEO' }}</p>
-                    <p>{{ developer.bio if developer and developer.bio else 'I am a passionate Computer Science student dedicated to building tools that solve real-world problems. StudyNova is my contribution to the student community, aiming to bridge the gap in access to quality study materials.' }}</p>
-                    <div class="dev-social mt-4 mb-4">
-                        {% if developer and developer.linkedin_url %}
-                        <a href="{{ developer.linkedin_url }}" class="btn btn-primary me-2 mb-2" target="_blank" rel="noopener noreferrer">
-                            <i class="fab fa-linkedin me-2"></i>LinkedIn
-                        </a>
-                        {% else %}
-                        <a href="https://www.linkedin.com/in/sharanabasu-police-patil" class="btn btn-primary me-2 mb-2" target="_blank" rel="noopener noreferrer">
-                            <i class="fab fa-linkedin me-2"></i>LinkedIn
-                        </a>
-                        {% endif %}
-                        <a href="https://github.com/Sharanabasu123" class="btn btn-dark me-2 mb-2" target="_blank" rel="noopener noreferrer">
-                            <i class="fab fa-github me-2"></i>GitHub
-                        </a>
-                    </div>
-                    <div class="study-nova-social pt-3 border-top">
-                        <h5 class="mb-3">Follow StudyNova on Social Media</h5>
-                        <div class="d-flex flex-wrap gap-3">
-                            <a href="https://www.instagram.com/studynovaofficial" class="btn btn-outline-primary me-2 mb-2" target="_blank" rel="noopener noreferrer">
-                                <i class="fab fa-instagram me-2"></i>Follow StudyNova on Instagram
-                            </a>
-                            <a href="https://whatsapp.com/channel/0029Vb5gpMZATRSflFEUDK0H" class="btn btn-outline-success me-2 mb-2" target="_blank" rel="noopener noreferrer">
-                                <i class="fab fa-whatsapp me-2"></i>Follow StudyNova on WhatsApp
-                            </a>
-                            <a href="https://youtube.com/@studynova26" class="btn btn-outline-danger me-2 mb-2" target="_blank" rel="noopener noreferrer">
-                                <i class="fab fa-youtube me-2"></i>Subscribe to StudyNova on YouTube
-                            </a>
+                <div class="col-lg-5">
+                    <div class="row g-3">
+                        <div class="col-sm-6 animate-card delay-2">
+                            <div class="stat-card stat-mission">
+                                <i class="fas fa-rocket"></i>
+                                <h5>Mission</h5>
+                                <p>Make quality study resources simple to access.</p>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="team-section py-5">
-            <div class="container">
-                <div class="row mb-4">
-                    <div class="col-12 text-center">
-                        <h2 class="section-title">Our Team</h2>
-                        <p class="text-muted">Meet the active members helping StudyNova grow.</p>
-                    </div>
-                </div>
-                {% if team_members %}
-                <div class="row g-4">
-                    {% for member in team_members %}
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card h-100 border-0 shadow-sm">
-                            <div class="card-body text-center">
-                                {% if member.profile_url %}
-                                <img src="{{ member.profile_url }}" alt="{{ member.name }}" class="rounded-circle mb-3" style="width: 130px; height: 130px; object-fit: cover;">
-                                {% else %}
-                                <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center mb-3" style="width: 130px; height: 130px;">
-                                    <i class="fas fa-user fa-3x"></i>
-                                </div>
-                                {% endif %}
-                                <h5 class="card-title mb-1">{{ member.name }}</h5>
-                                <p class="text-primary small mb-2">{{ member.title or 'Team Member' }}</p>
-                                <p class="small text-muted">{{ member.bio or 'No bio available yet.' }}</p>
-                                <div class="d-flex justify-content-center gap-2 mt-3">
-                                    {% if member.linkedin_url %}
-                                    <a href="{{ member.linkedin_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
-                                        <i class="fab fa-linkedin me-1"></i>LinkedIn
-                                    </a>
-                                    {% endif %}
-                                    {% if member.github_url %}
-                                    <a href="{{ member.github_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark btn-sm">
-                                        <i class="fab fa-github me-1"></i>GitHub
-                                    </a>
-                                    {% endif %}
-                                </div>
+                        <div class="col-sm-6 animate-card delay-3">
+                            <div class="stat-card stat-vision">
+                                <i class="fas fa-eye"></i>
+                                <h5>Vision</h5>
+                                <p>Build a trusted platform for student success.</p>
                             </div>
                         </div>
                     </div>
-                    {% endfor %}
                 </div>
-                {% else %}
-                <div class="alert alert-info">No team members are published yet. Check back later for updates.</div>
-                {% endif %}
+            </div>
+
+            <div class="info-wrap animate-card delay-2">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="info-card info-card-blue">
+                            <div class="icon-badge icon-blue">
+                                <i class="fas fa-layer-group"></i>
+                            </div>
+                            <h3>What StudyNova Offers</h3>
+                            <p>StudyNova brings academic resources together in one organized platform for VTU students. Students can quickly access notes, lab programs, previous year question papers, syllabus content, placement preparation materials, and other study resources without wasting time searching across multiple places.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-card info-card-purple">
+                            <div class="icon-badge icon-purple">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <h3>Why Students Use It</h3>
+                            <p>The platform is designed to feel simple, fast, and reliable. With a clean structure, responsive design, and easy navigation, StudyNova helps students spend more time learning and less time looking for the right material.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-card info-card-green">
+                            <div class="icon-badge icon-green">
+                                <i class="fas fa-bullseye"></i>
+                            </div>
+                            <h3>Our Goal</h3>
+                            <p>StudyNova aims to become a trusted digital learning platform for engineering students by improving accessibility, organization, and quality of academic content. Every feature is focused on helping students prepare better and learn with confidence.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-card info-card-pink">
+                            <div class="icon-badge icon-pink">
+                                <i class="fas fa-share-alt"></i>
+                            </div>
+                            <h3>Connect With StudyNova</h3>
+                            <div class="social-buttons mt-3">
+                                <a href="https://www.instagram.com/studynovaofficial" class="btn btn-outline-primary" target="_blank" rel="noopener noreferrer">
+                                    <i class="fab fa-instagram me-2"></i>Instagram
+                                </a>
+                                <a href="https://whatsapp.com/channel/0029Vb5gpMZATRSflFEUDK0H" class="btn btn-outline-success" target="_blank" rel="noopener noreferrer">
+                                    <i class="fab fa-whatsapp me-2"></i>WhatsApp
+                                </a>
+                                <a href="https://youtube.com/@studynova26" class="btn btn-outline-danger" target="_blank" rel="noopener noreferrer">
+                                    <i class="fab fa-youtube me-2"></i>YouTube
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
+</div>
 {% endblock %}

@@ -14,6 +14,8 @@ from uuid import uuid4
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+from lab_programs import init_lab_programs_db
+
 # Load environment variables from .env if available
 try:
     from dotenv import load_dotenv
@@ -244,12 +246,19 @@ USE_POSTGRES = all([
     POSTGRES_CONFIG['database'],
 ])
 
+# Track which database is actually available
+_ACTIVE_DATABASE = None  # Will be set to 'postgres', 'mysql', or 'sqlite' when database connects
+
 
 def mysql_enabled():
+    if _ACTIVE_DATABASE is not None:
+        return _ACTIVE_DATABASE == 'mysql'
     return USE_MYSQL and MYSQL_AVAILABLE
 
 
 def postgres_enabled():
+    if _ACTIVE_DATABASE is not None:
+        return _ACTIVE_DATABASE == 'postgres'
     return not mysql_enabled() and USE_POSTGRES and POSTGRES_AVAILABLE
 
 
@@ -262,24 +271,42 @@ def current_database_label():
 
 
 def get_db_connection():
-    if mysql_enabled():
-        return mysql.connector.connect(
-            host=MYSQL_CONFIG['host'],
-            port=MYSQL_CONFIG['port'],
-            user=MYSQL_CONFIG['user'],
-            password=MYSQL_CONFIG['password'],
-            database=MYSQL_CONFIG['database'],
-        )
+    global _ACTIVE_DATABASE
+    
+    # Try PostgreSQL first if enabled
+    if _ACTIVE_DATABASE != 'sqlite' and USE_POSTGRES and POSTGRES_AVAILABLE:
+        try:
+            conn = psycopg2.connect(
+                host=POSTGRES_CONFIG['host'],
+                port=POSTGRES_CONFIG['port'],
+                user=POSTGRES_CONFIG['user'],
+                password=POSTGRES_CONFIG['password'],
+                dbname=POSTGRES_CONFIG['database'],
+            )
+            _ACTIVE_DATABASE = 'postgres'
+            return conn
+        except Exception as e:
+            print(f"[db] PostgreSQL connection failed: {e}. Trying alternative...")
+            _ACTIVE_DATABASE = None
+    
+    # Try MySQL if enabled
+    if _ACTIVE_DATABASE != 'sqlite' and USE_MYSQL and MYSQL_AVAILABLE:
+        try:
+            conn = mysql.connector.connect(
+                host=MYSQL_CONFIG['host'],
+                port=MYSQL_CONFIG['port'],
+                user=MYSQL_CONFIG['user'],
+                password=MYSQL_CONFIG['password'],
+                database=MYSQL_CONFIG['database'],
+            )
+            _ACTIVE_DATABASE = 'mysql'
+            return conn
+        except Exception as e:
+            print(f"[db] MySQL connection failed: {e}. Trying SQLite...")
+            _ACTIVE_DATABASE = None
 
-    if postgres_enabled():
-        return psycopg2.connect(
-            host=POSTGRES_CONFIG['host'],
-            port=POSTGRES_CONFIG['port'],
-            user=POSTGRES_CONFIG['user'],
-            password=POSTGRES_CONFIG['password'],
-            dbname=POSTGRES_CONFIG['database'],
-        )
-
+    # Fall back to SQLite
+    _ACTIVE_DATABASE = 'sqlite'
     try:
         conn = sqlite3.connect(DATABASE)
         conn.row_factory = sqlite3.Row
@@ -725,6 +752,12 @@ def init_postgres_db():
                 profile_public_id TEXT,
                 linkedin_url TEXT,
                 github_url TEXT,
+                instagram_url TEXT,
+                phone VARCHAR(20),
+                email VARCHAR(255),
+                college VARCHAR(255),
+                department VARCHAR(255),
+                role VARCHAR(255),
                 is_founder INTEGER DEFAULT 0,
                 is_active INTEGER DEFAULT 1,
                 sort_order INTEGER DEFAULT 0,
@@ -855,10 +888,16 @@ def init_postgres_db():
 
 
 def init_db():
+    # Try to use PostgreSQL if configured, but fall back to SQLite if connection fails
     if postgres_enabled():
-        init_postgres_db()
-        return
-
+        try:
+            init_postgres_db()
+            return
+        except Exception as postgres_error:
+            print(f"[db] PostgreSQL connection failed: {postgres_error}")
+            print(f"[db] Falling back to SQLite...")
+    
+    # Fall back to SQLite
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -1964,6 +2003,12 @@ def init_db():
                 profile_public_id TEXT,
                 linkedin_url TEXT,
                 github_url TEXT,
+                instagram_url TEXT,
+                phone VARCHAR(20),
+                email VARCHAR(255),
+                college VARCHAR(255),
+                department VARCHAR(255),
+                role VARCHAR(255),
                 is_founder TINYINT DEFAULT 0,
                 is_active TINYINT DEFAULT 1,
                 sort_order INT DEFAULT 0,
@@ -1981,12 +2026,59 @@ def init_db():
                 profile_public_id TEXT,
                 linkedin_url TEXT,
                 github_url TEXT,
+                instagram_url TEXT,
+                phone TEXT,
+                email TEXT,
+                college TEXT,
+                department TEXT,
+                role TEXT,
                 is_founder INTEGER DEFAULT 0,
                 is_active INTEGER DEFAULT 1,
                 sort_order INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+
+    # Add missing columns to team_members if they don't exist
+    try:
+        if mysql_enabled():
+            cursor.execute("SHOW COLUMNS FROM team_members LIKE 'phone'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE team_members ADD COLUMN phone VARCHAR(20)")
+            cursor.execute("SHOW COLUMNS FROM team_members LIKE 'email'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE team_members ADD COLUMN email VARCHAR(255)")
+            cursor.execute("SHOW COLUMNS FROM team_members LIKE 'college'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE team_members ADD COLUMN college VARCHAR(255)")
+            cursor.execute("SHOW COLUMNS FROM team_members LIKE 'department'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE team_members ADD COLUMN department VARCHAR(255)")
+            cursor.execute("SHOW COLUMNS FROM team_members LIKE 'instagram_url'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE team_members ADD COLUMN instagram_url TEXT")
+            cursor.execute("SHOW COLUMNS FROM team_members LIKE 'role'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE team_members ADD COLUMN role VARCHAR(255)")
+            conn.commit()
+        else:
+            cursor.execute("PRAGMA table_info(team_members)")
+            columns = [col[1] for col in cursor.fetchall()]
+            if 'phone' not in columns:
+                cursor.execute("ALTER TABLE team_members ADD COLUMN phone TEXT")
+            if 'email' not in columns:
+                cursor.execute("ALTER TABLE team_members ADD COLUMN email TEXT")
+            if 'college' not in columns:
+                cursor.execute("ALTER TABLE team_members ADD COLUMN college TEXT")
+            if 'department' not in columns:
+                cursor.execute("ALTER TABLE team_members ADD COLUMN department TEXT")
+            if 'instagram_url' not in columns:
+                cursor.execute("ALTER TABLE team_members ADD COLUMN instagram_url TEXT")
+            if 'role' not in columns:
+                cursor.execute("ALTER TABLE team_members ADD COLUMN role TEXT")
+            conn.commit()
+    except Exception as e:
+        print(f"Error adding team_members columns: {e}")
 
     # Create password_reset_tokens table
     if mysql_enabled():
@@ -2046,6 +2138,12 @@ def init_db():
         ''', ('Demo Student', 'demo@studynova.com', hashed_demo_password, hashed_demo_password, 'user', 0,
               '9876543210', 'Demo College', 'Computer Science & Engineering', '2nd Semester', '2022 Scheme'))
         print("Demo user created from local development seed settings.")
+
+    # Initialize Lab Programs Module Tables
+    try:
+        init_lab_programs_db(cursor, 'sqlite')
+    except Exception as e:
+        print(f"[db] Warning: Could not initialize lab programs tables: {e}")
 
     conn.commit()
     cursor.close()
@@ -2255,6 +2353,439 @@ def admin_required(view):
 
         return view(*args, **kwargs)
     return wrapped_view
+
+
+# --------------------------
+# Interactive Lab Programs Portal (Phase 6)
+# --------------------------
+
+def ensure_lab_demo_data():
+    placeholder = get_placeholder()
+    subject = execute_query(f'SELECT id FROM lab_subjects WHERE code = {placeholder} LIMIT 1', ('BCSL606',), fetchone=True)
+    if subject:
+        return subject['id']
+
+    subject_id = None
+    try:
+        execute_query(f'''
+            INSERT INTO lab_subjects (
+                name, code, branch, scheme, semester, credits, cie_marks, see_marks, total_marks,
+                teaching_hours_l, teaching_hours_t, teaching_hours_p, teaching_hours_s,
+                subject_image_url, description, is_active
+            ) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+        ''', (
+            'Machine Learning Lab',
+            'BCSL606',
+            'Computer Science & Engineering',
+            '2022',
+            6,
+            4,
+            40,
+            60,
+            100,
+            0,
+            0,
+            3,
+            0,
+            'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80',
+            'Interactive Python lab portal for machine learning experiments and viva prep.',
+            1,
+        ), commit=True)
+
+        stored_subject = execute_query(f'SELECT id FROM lab_subjects WHERE code = {placeholder} LIMIT 1', ('BCSL606',), fetchone=True)
+        if stored_subject:
+            subject_id = stored_subject['id']
+
+        if subject_id is not None:
+            sample_programs = [
+                {
+                    'program_number': 1,
+                    'question': 'Write a Python program to implement linear regression using gradient descent.',
+                    'code': 'import numpy as np\n\nX = np.array([[1], [2], [3], [4]])\ny = np.array([2, 4, 6, 8])\n\n# Gradient descent for simple linear regression\nW = 0.0\nb = 0.0\nlearning_rate = 0.01\niterations = 1000\n\nfor _ in range(iterations):\n    y_pred = W * X + b\n    error = y_pred - y\n    dW = np.mean(error * X)\n    db = np.mean(error)\n    W -= learning_rate * dW\n    b -= learning_rate * db\n\nprint(f"W={W:.3f}, b={b:.3f}")',
+                    'programming_language': 'python',
+                },
+                {
+                    'program_number': 2,
+                    'question': 'Write a Python program to build a decision tree classifier using scikit-learn.',
+                    'code': 'from sklearn.datasets import load_iris\nfrom sklearn.tree import DecisionTreeClassifier\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.metrics import accuracy_score\n\niris = load_iris()\nX_train, X_test, y_train, y_test = train_test_split(iris.data, iris.target, test_size=0.2, random_state=42)\n\nmodel = DecisionTreeClassifier(max_depth=3)\nmodel.fit(X_train, y_train)\npred = model.predict(X_test)\n\nprint("Accuracy:", accuracy_score(y_test, pred))',
+                    'programming_language': 'python',
+                },
+                {
+                    'program_number': 3,
+                    'question': 'Write a Python program to implement k-means clustering on a small dataset.',
+                    'code': 'from sklearn.datasets import make_blobs\nfrom sklearn.cluster import KMeans\nimport matplotlib.pyplot as plt\n\nX, _ = make_blobs(n_samples=300, centers=3, random_state=42, cluster_std=0.60)\n\nmodel = KMeans(n_clusters=3)\nmodel.fit(X)\n\nplt.scatter(X[:, 0], X[:, 1], c=model.labels_, cmap="viridis")\nplt.title("K-Means Clustering")\nplt.show()',
+                    'programming_language': 'python',
+                }
+            ]
+            for program in sample_programs:
+                execute_query(f'''
+                    INSERT INTO lab_programs (subject_id, program_number, question, code, programming_language, is_published, sort_order)
+                    VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+                ''', (subject_id, program['program_number'], program['question'], program['code'], program['programming_language'], 1, program['program_number']), commit=True)
+
+            programs = execute_query(f'SELECT id, program_number FROM lab_programs WHERE subject_id = {placeholder} ORDER BY program_number ASC', (subject_id,), fetchall=True)
+            for index, program in enumerate(programs or []):
+                output_content = 'Output will appear here after running the program.' if index == 0 else 'Console output preview.'
+                execute_query(f'''
+                    INSERT INTO program_outputs (program_id, output_type, content, display_order)
+                    VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})
+                ''', (program['id'], 'console', output_content, index + 1), commit=True)
+
+                viva_questions = [
+                    'What is the purpose of this algorithm?',
+                    'How does the model evaluate performance?',
+                    'What are the limitations of this approach?',
+                ]
+                for viva_index, viva_question in enumerate(viva_questions, start=1):
+                    execute_query(f'''
+                        INSERT INTO viva_questions (program_id, question_number, question, display_order)
+                        VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})
+                    ''', (program['id'], viva_index, viva_question, viva_index), commit=True)
+    except Exception as exc:
+        print(f'[lab] Could not seed demo lab data: {exc}')
+
+
+def get_lab_subjects(branch=None, scheme=None, semester=None, search=None):
+    placeholder = get_placeholder()
+    query = 'SELECT * FROM lab_subjects WHERE is_active = 1'
+    params = []
+    if branch:
+        query += f' AND branch = {placeholder}'
+        params.append(branch)
+    if scheme:
+        query += f' AND scheme = {placeholder}'
+        params.append(scheme)
+    if semester:
+        query += f' AND semester = {placeholder}'
+        params.append(semester)
+    if search:
+        query += f' AND (name LIKE {placeholder} OR code LIKE {placeholder} OR description LIKE {placeholder})'
+        search_term = f'%{search}%'
+        params.extend([search_term, search_term, search_term])
+    query += ' ORDER BY semester ASC, name ASC'
+    return execute_query(query, tuple(params), fetchall=True) or []
+
+
+def get_lab_programs(subject_id):
+    placeholder = get_placeholder()
+    return execute_query(f'SELECT * FROM lab_programs WHERE subject_id = {placeholder} AND is_published = 1 ORDER BY sort_order ASC, program_number ASC', (subject_id,), fetchall=True) or []
+
+
+def get_all_admin_lab_programs(subject_id=None):
+    placeholder = get_placeholder()
+    query = '''
+        SELECT lp.*, ls.name AS subject_name, ls.code AS subject_code
+        FROM lab_programs lp
+        JOIN lab_subjects ls ON ls.id = lp.subject_id
+    '''
+    params = []
+    if subject_id is not None:
+        query += f' WHERE lp.subject_id = {placeholder}'
+        params.append(subject_id)
+    query += ' ORDER BY ls.semester ASC, ls.name ASC, lp.sort_order ASC, lp.program_number ASC, lp.id ASC'
+    return execute_query(query, tuple(params), fetchall=True) or []
+
+
+def build_lab_program_map(programs):
+    program_map = {}
+    for program in programs:
+        program_map.setdefault(program['subject_id'], []).append(program)
+    return program_map
+
+
+def get_program_outputs(program_id):
+    placeholder = get_placeholder()
+    return execute_query(f'SELECT * FROM program_outputs WHERE program_id = {placeholder} ORDER BY display_order ASC, id ASC', (program_id,), fetchall=True) or []
+
+
+def get_program_viva_questions(program_id):
+    placeholder = get_placeholder()
+    return execute_query(f'SELECT * FROM viva_questions WHERE program_id = {placeholder} ORDER BY display_order ASC, question_number ASC', (program_id,), fetchall=True) or []
+
+
+def get_user_program_progress(user_id, program_id):
+    placeholder = get_placeholder()
+    return execute_query(f'SELECT * FROM student_progress WHERE user_id = {placeholder} AND program_id = {placeholder} LIMIT 1', (user_id, program_id), fetchone=True)
+
+
+@app.route('/labs')
+def labs():
+    ensure_lab_demo_data()
+    branch = request.args.get('branch', '').strip()
+    scheme = request.args.get('scheme', '').strip()
+    semester = request.args.get('semester', '').strip()
+    search = request.args.get('search', '').strip()
+    subjects = get_lab_subjects(branch=branch or None, scheme=scheme or None, semester=semester or None, search=search or None)
+    return render_template('labs.html', subjects=subjects, branch=branch, scheme=scheme, semester=semester, search=search)
+
+
+@app.route('/labs/subject/<int:subject_id>')
+def lab_subject(subject_id):
+    ensure_lab_demo_data()
+    subject = execute_query(f'SELECT * FROM lab_subjects WHERE id = {get_placeholder()} LIMIT 1', (subject_id,), fetchone=True)
+    if not subject:
+        flash('Lab subject not found.', 'warning')
+        return redirect(url_for('labs'))
+    programs = get_lab_programs(subject_id)
+    return render_template('lab_subject.html', subject=subject, programs=programs)
+
+
+@app.route('/labs/subject/<int:subject_id>/program/<int:program_id>')
+def lab_program(subject_id, program_id):
+    ensure_lab_demo_data()
+    subject = execute_query(f'SELECT * FROM lab_subjects WHERE id = {get_placeholder()} LIMIT 1', (subject_id,), fetchone=True)
+    program = execute_query(f'SELECT * FROM lab_programs WHERE id = {get_placeholder()} AND subject_id = {get_placeholder()} LIMIT 1', (program_id, subject_id), fetchone=True)
+    if not subject or not program:
+        flash('Program not found.', 'warning')
+        return redirect(url_for('labs'))
+    outputs = get_program_outputs(program_id)
+    viva_questions = get_program_viva_questions(program_id)
+    progress = None
+    if session.get('user_email'):
+        user = get_user_by_email(session['user_email'])
+        if user:
+            progress = get_user_program_progress(user['id'], program_id)
+    return render_template('lab_program.html', subject=subject, program=program, outputs=outputs, viva_questions=viva_questions, progress=progress)
+
+
+@app.route('/labs/program/<int:program_id>/bookmark', methods=['POST'])
+@login_required
+def bookmark_program(program_id):
+    user = get_user_by_email(session['user_email'])
+    if not user:
+        flash('Please log in again.', 'warning')
+        return redirect(url_for('labs'))
+
+    placeholder = get_placeholder()
+    existing = get_user_program_progress(user['id'], program_id)
+    if existing:
+        execute_query(f'UPDATE student_progress SET is_bookmarked = {placeholder}, updated_at = CURRENT_TIMESTAMP WHERE id = {placeholder}', (0 if existing.get('is_bookmarked') else 1, existing['id']), commit=True)
+    else:
+        execute_query(f'INSERT INTO student_progress (user_id, program_id, is_bookmarked, is_completed) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})', (user['id'], program_id, 1, 0), commit=True)
+    flash('Bookmark updated.', 'success')
+    return redirect(request.referrer or url_for('labs'))
+
+
+@app.route('/labs/program/<int:program_id>/complete', methods=['POST'])
+@login_required
+def complete_program(program_id):
+    user = get_user_by_email(session['user_email'])
+    if not user:
+        flash('Please log in again.', 'warning')
+        return redirect(url_for('labs'))
+
+    existing = get_user_program_progress(user['id'], program_id)
+    if existing:
+        execute_query(f'UPDATE student_progress SET is_completed = {get_placeholder()}, completion_date = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = {get_placeholder()}', (0 if existing.get('is_completed') else 1, existing['id']), commit=True)
+    else:
+        execute_query(f'INSERT INTO student_progress (user_id, program_id, is_bookmarked, is_completed, completion_date) VALUES ({get_placeholder()}, {get_placeholder()}, {get_placeholder()}, {get_placeholder()}, CURRENT_TIMESTAMP)', (user['id'], program_id, 0, 1), commit=True)
+    flash('Progress updated.', 'success')
+    return redirect(request.referrer or url_for('labs'))
+
+
+@app.route('/labs/program/<int:program_id>/report', methods=['POST'])
+@login_required
+def report_program(program_id):
+    user = get_user_by_email(session['user_email'])
+    if not user:
+        flash('Please log in again.', 'warning')
+        return redirect(url_for('labs'))
+
+    message = request.form.get('message', '').strip()
+    if not message:
+        flash('Please describe the issue.', 'warning')
+        return redirect(request.referrer or url_for('labs'))
+
+    execute_query(f'''
+        INSERT INTO program_feedback (program_id, user_id, feedback_type, message)
+        VALUES ({get_placeholder()}, {get_placeholder()}, {get_placeholder()}, {get_placeholder()})
+    ''', (program_id, user['id'], 'bug_report', message), commit=True)
+    flash('Thank you! Your report has been submitted.', 'success')
+    return redirect(request.referrer or url_for('labs'))
+
+
+@app.route('/admin/labs')
+@admin_required
+def admin_labs():
+    subjects = execute_query('SELECT * FROM lab_subjects ORDER BY semester ASC, name ASC', fetchall=True) or []
+    programs = get_all_admin_lab_programs()
+    programs_by_subject = build_lab_program_map(programs)
+    return render_template('admin_labs.html', subjects=subjects, programs_by_subject=programs_by_subject)
+
+
+@app.route('/admin/labs/add', methods=['GET', 'POST'])
+@admin_required
+def admin_add_lab_subject():
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        code = request.form.get('code', '').strip().upper()
+        branch = request.form.get('branch', '').strip()
+        scheme = request.form.get('scheme', '').strip()
+        semester = request.form.get('semester', type=int) or 0
+        credits = request.form.get('credits', type=int) or 4
+        cie_marks = request.form.get('cie_marks', type=int) or 40
+        see_marks = request.form.get('see_marks', type=int) or 60
+        total_marks = request.form.get('total_marks', type=int) or 100
+        description = request.form.get('description', '').strip()
+        image_url = request.form.get('image_url', '').strip()
+        if not name or not code:
+            flash('Subject name and code are required.', 'warning')
+            return redirect(url_for('admin_labs'))
+        execute_query(f'''
+            INSERT INTO lab_subjects (name, code, branch, scheme, semester, credits, cie_marks, see_marks, total_marks, subject_image_url, description, is_active)
+            VALUES ({get_placeholder()}, {get_placeholder()}, {get_placeholder()}, {get_placeholder()}, {get_placeholder()}, {get_placeholder()}, {get_placeholder()}, {get_placeholder()}, {get_placeholder()}, {get_placeholder()}, {get_placeholder()}, {get_placeholder()})
+        ''', (name, code, branch, scheme, semester, credits, cie_marks, see_marks, total_marks, image_url or None, description, 1), commit=True)
+        flash('Lab subject added successfully.', 'success')
+        return redirect(url_for('admin_labs'))
+    subjects = execute_query('SELECT * FROM lab_subjects ORDER BY semester ASC, name ASC', fetchall=True) or []
+    programs_by_subject = build_lab_program_map(get_all_admin_lab_programs())
+    return render_template('admin_labs.html', subjects=subjects, programs_by_subject=programs_by_subject, form_mode='add')
+
+
+@app.route('/admin/labs/edit/<int:subject_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_edit_lab_subject(subject_id):
+    placeholder = get_placeholder()
+    subject = execute_query(f'SELECT * FROM lab_subjects WHERE id = {placeholder} LIMIT 1', (subject_id,), fetchone=True)
+    if not subject:
+        flash('Lab subject not found.', 'warning')
+        return redirect(url_for('admin_labs'))
+
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        code = request.form.get('code', '').strip().upper()
+        branch = request.form.get('branch', '').strip()
+        scheme = request.form.get('scheme', '').strip()
+        semester = request.form.get('semester', type=int) or 0
+        credits = request.form.get('credits', type=int) or 4
+        cie_marks = request.form.get('cie_marks', type=int) or 40
+        see_marks = request.form.get('see_marks', type=int) or 60
+        total_marks = request.form.get('total_marks', type=int) or 100
+        description = request.form.get('description', '').strip()
+        image_url = request.form.get('image_url', '').strip()
+        is_active = 1 if request.form.get('is_active') else 0
+
+        if not name or not code:
+            flash('Subject name and code are required.', 'warning')
+            return redirect(url_for('admin_edit_lab_subject', subject_id=subject_id))
+
+        execute_query(f'''
+            UPDATE lab_subjects
+            SET name = {placeholder},
+                code = {placeholder},
+                branch = {placeholder},
+                scheme = {placeholder},
+                semester = {placeholder},
+                credits = {placeholder},
+                cie_marks = {placeholder},
+                see_marks = {placeholder},
+                total_marks = {placeholder},
+                subject_image_url = {placeholder},
+                description = {placeholder},
+                is_active = {placeholder}
+            WHERE id = {placeholder}
+        ''', (name, code, branch, scheme, semester, credits, cie_marks, see_marks, total_marks, image_url or None, description, is_active, subject_id), commit=True)
+        flash('Lab subject updated successfully.', 'success')
+        return redirect(url_for('admin_labs'))
+
+    subjects = execute_query('SELECT * FROM lab_subjects ORDER BY semester ASC, name ASC', fetchall=True) or []
+    programs_by_subject = build_lab_program_map(get_all_admin_lab_programs())
+    return render_template('admin_labs.html', subjects=subjects, programs_by_subject=programs_by_subject, form_mode='edit_subject', edit_subject=subject)
+
+
+@app.route('/admin/labs/delete/<int:subject_id>', methods=['POST'])
+@admin_required
+def admin_delete_lab_subject(subject_id):
+    placeholder = get_placeholder()
+    subject = execute_query(f'SELECT * FROM lab_subjects WHERE id = {placeholder} LIMIT 1', (subject_id,), fetchone=True)
+    if not subject:
+        flash('Lab subject not found.', 'warning')
+        return redirect(url_for('admin_labs'))
+    execute_query(f'DELETE FROM lab_subjects WHERE id = {placeholder}', (subject_id,), commit=True)
+    flash('Lab subject deleted successfully.', 'success')
+    return redirect(url_for('admin_labs'))
+
+
+@app.route('/admin/labs/program/add/<int:subject_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_add_lab_program(subject_id):
+    subject = execute_query(f'SELECT * FROM lab_subjects WHERE id = {get_placeholder()} LIMIT 1', (subject_id,), fetchone=True)
+    if not subject:
+        flash('Subject not found.', 'warning')
+        return redirect(url_for('admin_labs'))
+    if request.method == 'POST':
+        program_number = request.form.get('program_number', type=int) or 1
+        question = request.form.get('question', '').strip()
+        code = request.form.get('code', '').strip()
+        if not question or not code:
+            flash('Program question and code are required.', 'warning')
+            return redirect(url_for('admin_add_lab_program', subject_id=subject_id))
+        execute_query(f'''
+            INSERT INTO lab_programs (subject_id, program_number, question, code, programming_language, is_published, sort_order)
+            VALUES ({get_placeholder()}, {get_placeholder()}, {get_placeholder()}, {get_placeholder()}, {get_placeholder()}, {get_placeholder()}, {get_placeholder()})
+        ''', (subject_id, program_number, question, code, request.form.get('programming_language', 'python').strip() or 'python', 1, program_number), commit=True)
+        flash('Program added successfully.', 'success')
+        return redirect(url_for('admin_labs'))
+    subjects = execute_query('SELECT * FROM lab_subjects ORDER BY semester ASC, name ASC', fetchall=True) or []
+    programs_by_subject = build_lab_program_map(get_all_admin_lab_programs())
+    return render_template('admin_labs.html', subject=subject, form_mode='program', subjects=subjects, programs_by_subject=programs_by_subject)
+
+
+@app.route('/admin/labs/program/edit/<int:program_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_edit_lab_program(program_id):
+    placeholder = get_placeholder()
+    program = execute_query(f'SELECT * FROM lab_programs WHERE id = {placeholder} LIMIT 1', (program_id,), fetchone=True)
+    if not program:
+        flash('Lab program not found.', 'warning')
+        return redirect(url_for('admin_labs'))
+
+    subject = execute_query(f'SELECT * FROM lab_subjects WHERE id = {placeholder} LIMIT 1', (program['subject_id'],), fetchone=True)
+    if not subject:
+        flash('Lab subject not found.', 'warning')
+        return redirect(url_for('admin_labs'))
+
+    if request.method == 'POST':
+        program_number = request.form.get('program_number', type=int) or 1
+        question = request.form.get('question', '').strip()
+        code = request.form.get('code', '').strip()
+        programming_language = request.form.get('programming_language', 'python').strip() or 'python'
+        sort_order = request.form.get('sort_order', type=int) or program_number
+        is_published = 1 if request.form.get('is_published') else 0
+
+        if not question or not code:
+            flash('Program question and code are required.', 'warning')
+            return redirect(url_for('admin_edit_lab_program', program_id=program_id))
+
+        execute_query(f'''
+            UPDATE lab_programs
+            SET program_number = {placeholder},
+                question = {placeholder},
+                code = {placeholder},
+                programming_language = {placeholder},
+                is_published = {placeholder},
+                sort_order = {placeholder}
+            WHERE id = {placeholder}
+        ''', (program_number, question, code, programming_language, is_published, sort_order, program_id), commit=True)
+        flash('Lab program updated successfully.', 'success')
+        return redirect(url_for('admin_labs'))
+
+    subjects = execute_query('SELECT * FROM lab_subjects ORDER BY semester ASC, name ASC', fetchall=True) or []
+    programs_by_subject = build_lab_program_map(get_all_admin_lab_programs())
+    return render_template('admin_labs.html', subjects=subjects, programs_by_subject=programs_by_subject, form_mode='edit_program', edit_program=program, subject=subject)
+
+
+@app.route('/admin/labs/program/delete/<int:program_id>', methods=['POST'])
+@admin_required
+def admin_delete_lab_program(program_id):
+    placeholder = get_placeholder()
+    program = execute_query(f'SELECT * FROM lab_programs WHERE id = {placeholder} LIMIT 1', (program_id,), fetchone=True)
+    if not program:
+        flash('Lab program not found.', 'warning')
+        return redirect(url_for('admin_labs'))
+    execute_query(f'DELETE FROM lab_programs WHERE id = {placeholder}', (program_id,), commit=True)
+    flash('Lab program deleted successfully.', 'success')
+    return redirect(url_for('admin_labs'))
 
 
 # Forward a contact-form submission to the configured admin email.
@@ -2657,72 +3188,9 @@ def admin_team():
 @app.route('/admin/team/add', methods=['GET', 'POST'])
 @admin_required
 def admin_add_team_member():
-    member = {
-        'name': '',
-        'title': '',
-        'bio': '',
-        'profile_url': None,
-        'profile_public_id': None,
-        'linkedin_url': '',
-        'github_url': '',
-        'is_founder': 0,
-        'is_active': 1,
-        'sort_order': 0,
-    }
-
-    if request.method == 'POST':
-        name = request.form.get('name', '').strip()
-        title = request.form.get('title', '').strip()
-        bio = request.form.get('bio', '').strip()
-        linkedin_url = request.form.get('linkedin_url', '').strip()
-        github_url = request.form.get('github_url', '').strip()
-        is_founder = 1 if request.form.get('is_founder') else 0
-        is_active = 1 if request.form.get('is_active') else 0
-        sort_order = request.form.get('sort_order', type=int) or 0
-        profile_url = None
-        profile_public_id = None
-        profile_photo = request.files.get('profile_photo')
-
-        member.update({
-            'name': name,
-            'title': title,
-            'bio': bio,
-            'profile_url': profile_url,
-            'profile_public_id': profile_public_id,
-            'linkedin_url': linkedin_url,
-            'github_url': github_url,
-            'is_founder': is_founder,
-            'is_active': is_active,
-            'sort_order': sort_order,
-        })
-
-        if profile_photo and profile_photo.filename:
-            try:
-                _, profile_url, _, profile_public_id = store_uploaded_file(profile_photo, ['team_members'], allow_images=True)
-                member['profile_url'] = profile_url
-                member['profile_public_id'] = profile_public_id
-            except Exception as exc:
-                flash(f'Profile photo upload failed: {exc}', 'danger')
-                return render_template('admin_add_team_member.html', member=member)
-
-        if not name:
-            flash('Team member name is required.', 'danger')
-            return render_template('admin_add_team_member.html', member=member)
-
-        placeholder = get_placeholder()
-        try:
-            execute_query(f'''
-                INSERT INTO team_members (name, title, bio, profile_url, profile_public_id, linkedin_url, github_url, is_founder, is_active, sort_order)
-                VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
-            ''', (name, title, bio, profile_url, profile_public_id, linkedin_url, github_url, is_founder, is_active, sort_order), commit=True)
-        except Exception as exc:
-            flash(f'Unable to add team member: {exc}', 'danger')
-            return render_template('admin_add_team_member.html', member=member)
-
-        flash('Team member added successfully.', 'success')
-        return redirect(url_for('admin_team'))
-
-    return render_template('admin_add_team_member.html', member=member)
+    # Adding team members is disabled - StudyNova has exactly 3 fixed team members
+    flash('Adding team members is not allowed. StudyNova maintains exactly 3 fixed team members.', 'warning')
+    return redirect(url_for('admin_team'))
 
 
 @app.route('/admin/team/edit/<int:member_id>', methods=['GET', 'POST'])
@@ -2738,39 +3206,36 @@ def admin_edit_team_member(member_id):
         name = request.form.get('name', '').strip()
         title = request.form.get('title', '').strip()
         bio = request.form.get('bio', '').strip()
+        phone = request.form.get('phone', '').strip()
+        email = request.form.get('email', '').strip()
+        college = request.form.get('college', '').strip()
+        department = request.form.get('department', '').strip()
         linkedin_url = request.form.get('linkedin_url', '').strip()
         github_url = request.form.get('github_url', '').strip()
-        is_founder = 1 if request.form.get('is_founder') else 0
+        instagram_url = request.form.get('instagram_url', '').strip()
+        role = request.form.get('role', '').strip()
         is_active = 1 if request.form.get('is_active') else 0
         sort_order = request.form.get('sort_order', type=int) or 0
         profile_url = member.get('profile_url')
         profile_public_id = member.get('profile_public_id')
-        profile_photo = request.files.get('profile_photo')
 
         member.update({
             'name': name,
             'title': title,
             'bio': bio,
+            'phone': phone,
+            'email': email,
+            'college': college,
+            'department': department,
+            'role': role,
             'profile_url': profile_url,
             'profile_public_id': profile_public_id,
             'linkedin_url': linkedin_url,
             'github_url': github_url,
-            'is_founder': is_founder,
+            'instagram_url': instagram_url,
             'is_active': is_active,
             'sort_order': sort_order,
         })
-
-        if profile_photo and profile_photo.filename:
-            try:
-                _, profile_url, _, new_public_id = store_uploaded_file(profile_photo, ['team_members'], allow_images=True)
-                if profile_public_id:
-                    delete_from_cloudinary(profile_public_id)
-                profile_public_id = new_public_id
-                member['profile_url'] = profile_url
-                member['profile_public_id'] = profile_public_id
-            except Exception as exc:
-                flash(f'Profile photo upload failed: {exc}', 'danger')
-                return render_template('admin_add_team_member.html', member=member)
 
         if not name:
             flash('Team member name is required.', 'danger')
@@ -2779,9 +3244,9 @@ def admin_edit_team_member(member_id):
         try:
             execute_query(f'''
                 UPDATE team_members
-                SET name = {placeholder}, title = {placeholder}, bio = {placeholder}, profile_url = {placeholder}, profile_public_id = {placeholder}, linkedin_url = {placeholder}, github_url = {placeholder}, is_founder = {placeholder}, is_active = {placeholder}, sort_order = {placeholder}
+                SET name = {placeholder}, title = {placeholder}, bio = {placeholder}, phone = {placeholder}, email = {placeholder}, college = {placeholder}, department = {placeholder}, role = {placeholder}, profile_url = {placeholder}, profile_public_id = {placeholder}, linkedin_url = {placeholder}, github_url = {placeholder}, instagram_url = {placeholder}, is_active = {placeholder}, sort_order = {placeholder}
                 WHERE id = {placeholder}
-            ''', (name, title, bio, profile_url, profile_public_id, linkedin_url, github_url, is_founder, is_active, sort_order, member_id), commit=True)
+            ''', (name, title, bio, phone, email, college, department, role, profile_url, profile_public_id, linkedin_url, github_url, instagram_url, is_active, sort_order, member_id), commit=True)
         except Exception as exc:
             flash(f'Unable to update team member: {exc}', 'danger')
             return render_template('admin_add_team_member.html', member=member)
@@ -2795,12 +3260,8 @@ def admin_edit_team_member(member_id):
 @app.route('/admin/team/delete/<int:member_id>', methods=['POST'])
 @admin_required
 def admin_delete_team_member(member_id):
-    placeholder = get_placeholder()
-    member = execute_query(f'SELECT * FROM team_members WHERE id = {placeholder}', (member_id,), fetchone=True)
-    if member and member.get('profile_public_id'):
-        delete_from_cloudinary(member.get('profile_public_id'))
-    execute_query(f'DELETE FROM team_members WHERE id = {placeholder}', (member_id,), commit=True)
-    flash('Team member removed successfully.', 'success')
+    # Deleting team members is disabled - StudyNova has exactly 3 fixed team members
+    flash('Deleting team members is not allowed. StudyNova maintains exactly 3 fixed team members.', 'warning')
     return redirect(url_for('admin_team'))
 
 
@@ -3792,13 +4253,185 @@ def profile_change_password():
 @app.route('/about')
 def about():
     team_members = get_team_members()
+    if not team_members:
+        # Fallback hardcoded team members
+        team_members = [
+            {
+                'id': 1,
+                'name': 'Sharanabasu Police Patil',
+                'title': 'Founder & Project Lead',
+                'role': 'Full Stack Developer',
+                'bio': 'Passionate about building educational platforms that make learning accessible to all students.',
+                'profile_url': '/static/images/team/founder.jpeg',
+                'github_url': '',
+                'linkedin_url': '',
+                'instagram_url': 'https://www.instagram.com/sharanabasu__police__patil',
+                'email': '',
+                'phone': '',
+                'college': '',
+                'department': '',
+                'is_founder': 1,
+                'is_active': 1
+            },
+            {
+                'id': 2,
+                'name': 'Megharaj Rathod',
+                'title': 'Co-Founder & Lead Developer',
+                'role': 'Backend Developer',
+                'bio': 'Specializes in backend development and database management, ensuring smooth platform performance.',
+                'profile_url': '/static/images/team/megharaj.jpeg',
+                'github_url': 'https://github.com/Megharajrathod',
+                'linkedin_url': '',
+                'instagram_url': '',
+                'email': '',
+                'phone': '',
+                'college': '',
+                'department': '',
+                'is_founder': 1,
+                'is_active': 1
+            },
+            {
+                'id': 3,
+                'name': 'Vamshi Krishna B N',
+                'title': 'Co-Founder & Developer',
+                'role': 'Frontend Developer',
+                'bio': 'Focuses on creating beautiful, responsive user interfaces for the best student experience.',
+                'profile_url': '/static/images/team/vamshi.jpeg',
+                'github_url': '',
+                'linkedin_url': '',
+                'instagram_url': 'https://www.instagram.com/chinna_v_3',
+                'email': '',
+                'phone': '',
+                'college': '',
+                'department': '',
+                'is_founder': 1,
+                'is_active': 1
+            }
+        ]
     return render_template('about.html', team_members=team_members)
 
 
 @app.route('/founders')
 def founders():
     founders = get_founders()
+    if not founders:
+        # Fallback hardcoded founders
+        founders = [
+            {
+                'id': 1,
+                'name': 'Sharanabasu Police Patil',
+                'title': 'Founder & Project Lead',
+                'role': 'Full Stack Developer',
+                'bio': 'Passionate about building educational platforms that make learning accessible to all students.',
+                'profile_url': '/static/images/team/founder.jpeg',
+                'github_url': '',
+                'linkedin_url': '',
+                'instagram_url': 'https://www.instagram.com/sharanabasu__police__patil',
+                'email': '',
+                'phone': '',
+                'college': '',
+                'department': '',
+                'is_founder': 1,
+                'is_active': 1
+            },
+            {
+                'id': 2,
+                'name': 'Megharaj Rathod',
+                'title': 'Co-Founder & Lead Developer',
+                'role': 'Backend Developer',
+                'bio': 'Specializes in backend development and database management, ensuring smooth platform performance.',
+                'profile_url': '/static/images/team/megharaj.jpeg',
+                'github_url': 'https://github.com/Megharajrathod',
+                'linkedin_url': '',
+                'instagram_url': '',
+                'email': '',
+                'phone': '',
+                'college': '',
+                'department': '',
+                'is_founder': 1,
+                'is_active': 1
+            },
+            {
+                'id': 3,
+                'name': 'Vamshi Krishna B N',
+                'title': 'Co-Founder & Developer',
+                'role': 'Frontend Developer',
+                'bio': 'Focuses on creating beautiful, responsive user interfaces for the best student experience.',
+                'profile_url': '/static/images/team/vamshi.jpeg',
+                'github_url': '',
+                'linkedin_url': '',
+                'instagram_url': 'https://www.instagram.com/chinna_v_3',
+                'email': '',
+                'phone': '',
+                'college': '',
+                'department': '',
+                'is_founder': 1,
+                'is_active': 1
+            }
+        ]
     return render_template('founders.html', founders=founders)
+
+
+@app.route('/team')
+def team():
+    # Display all team members
+    team_members = get_team_members()
+    if not team_members:
+        # Fallback hardcoded team members
+        team_members = [
+            {
+                'id': 1,
+                'name': 'Sharanabasu Police Patil',
+                'title': 'Founder & Project Lead',
+                'role': 'Full Stack Developer',
+                'bio': 'Passionate about building educational platforms that make learning accessible to all students.',
+                'profile_url': '/static/images/team/founder.jpeg',
+                'github_url': '',
+                'linkedin_url': '',
+                'instagram_url': 'https://www.instagram.com/sharanabasu__police__patil',
+                'email': '',
+                'phone': '',
+                'college': '',
+                'department': '',
+                'is_founder': 1,
+                'is_active': 1
+            },
+            {
+                'id': 2,
+                'name': 'Megharaj Rathod',
+                'title': 'Co-Founder & Lead Developer',
+                'role': 'Backend Developer',
+                'bio': 'Specializes in backend development and database management, ensuring smooth platform performance.',
+                'profile_url': '/static/images/team/megharaj.jpeg',
+                'github_url': 'https://github.com/Megharajrathod',
+                'linkedin_url': '',
+                'instagram_url': '',
+                'email': '',
+                'phone': '',
+                'college': '',
+                'department': '',
+                'is_founder': 1,
+                'is_active': 1
+            },
+            {
+                'id': 3,
+                'name': 'Vamshi Krishna B N',
+                'title': 'Co-Founder & Developer',
+                'role': 'Frontend Developer',
+                'bio': 'Focuses on creating beautiful, responsive user interfaces for the best student experience.',
+                'profile_url': '/static/images/team/vamshi.jpeg',
+                'github_url': '',
+                'linkedin_url': '',
+                'instagram_url': 'https://www.instagram.com/chinna_v_3',
+                'email': '',
+                'phone': '',
+                'college': '',
+                'department': '',
+                'is_founder': 1,
+                'is_active': 1
+            }
+        ]
+    return render_template('team.html', team_members=team_members)
 
 
 @app.route('/contact', methods=['GET', 'POST'])
@@ -3871,6 +4504,80 @@ def syllabus():
 @login_required
 def placement():
     return render_template('placement.html')
+
+
+@app.route('/branch/<branch_code>')
+def branch_page(branch_code):
+    # Get branch details from DB
+    placeholder = get_placeholder()
+    branch = execute_query(f"SELECT * FROM branches WHERE code = {placeholder}", (branch_code.upper(),), fetchone=True)
+    if not branch:
+        # Fallback for known branches
+        branch_names = {
+            'CSE': 'Computer Science & Engineering',
+            'AIML': 'Artificial Intelligence & Machine Learning',
+            'ECE': 'Electronics & Communication Engineering',
+            'EEE': 'Electrical & Electronics Engineering',
+            'MECH': 'Mechanical Engineering',
+            'CIVIL': 'Civil Engineering'
+        }
+        branch_name = branch_names.get(branch_code.upper(), branch_code)
+        branch = {'name': branch_name, 'code': branch_code.upper()}
+    schemes = get_schemes()
+    from datetime import datetime
+    return render_template('branch.html', branch_name=branch['name'], branch_code=branch['code'], schemes=schemes, today=datetime.now().strftime('%Y-%m-%d'))
+
+
+@app.route('/branch/<branch_code>/scheme/<int:scheme_id>')
+def scheme_page(branch_code, scheme_id):
+    placeholder = get_placeholder()
+    scheme = execute_query(f"SELECT * FROM schemes WHERE id = {placeholder}", (scheme_id,), fetchone=True)
+    if not scheme:
+        scheme = {'id': scheme_id, 'name': f'Scheme {scheme_id}'}
+    semesters = execute_query(f"SELECT * FROM semesters WHERE scheme_id = {placeholder} ORDER BY semester_number", (scheme_id,), fetchall=True)
+    return render_template('scheme.html', scheme_name=scheme['name'], scheme_id=scheme_id, semesters=semesters, branch_code=branch_code)
+
+
+@app.route('/branch/<branch_code>/scheme/<int:scheme_id>/semester/<int:semester_id>')
+def semester_page(branch_code, scheme_id, semester_id):
+    placeholder = get_placeholder()
+    semester = execute_query(f"SELECT * FROM semesters WHERE id = {placeholder}", (semester_id,), fetchone=True)
+    if not semester:
+        semester = {'id': semester_id, 'name': f'Semester {semester_id}'}
+    # Get branch id from branch code
+    branch = execute_query(f"SELECT * FROM branches WHERE code = {placeholder}", (branch_code.upper(),), fetchone=True)
+    branch_id = branch['id'] if branch else None
+    # Get subjects
+    subjects = []
+    if branch_id:
+        subjects = execute_query(f"SELECT * FROM subjects WHERE scheme_id = {placeholder} AND semester_id = {placeholder} AND branch_id = {placeholder} ORDER BY name", (scheme_id, semester_id, branch_id), fetchall=True)
+    if not subjects:
+        # Fallback subjects
+        subjects = [
+            {'id': 1, 'name': 'Advanced Data Structures', 'code': '18CS42'},
+            {'id': 2, 'name': 'Design and Analysis of Algorithms', 'code': '18CS43'},
+            {'id': 3, 'name': 'Operating Systems', 'code': '18CS44'},
+            {'id': 4, 'name': 'Computer Networks', 'code': '18CS45'},
+            {'id': 5, 'name': 'Database Management Systems', 'code': '18CS46'}
+        ]
+    return render_template('semester.html', semester_name=semester['name'], subjects=subjects, branch_code=branch_code, scheme_id=scheme_id)
+
+
+@app.route('/subject/<int:subject_id>')
+def subject_page(subject_id):
+    placeholder = get_placeholder()
+    subject = execute_query(f"SELECT * FROM subjects WHERE id = {placeholder}", (subject_id,), fetchone=True)
+    if not subject:
+        subject = {
+            'id': subject_id,
+            'name': 'Sample Subject',
+            'code': 'SAMPLE101',
+            'credits': 4
+        }
+    # Get syllabus for subject
+    syllabus = execute_query(f"SELECT * FROM syllabus WHERE subject_id = {placeholder}", (subject_id,), fetchone=True)
+    return render_template('subject.html', subject=subject, syllabus=syllabus)
+
 
 @app.route('/notes')
 def notes_library():
@@ -4170,7 +4877,7 @@ def admin_api_subjects():
     
     # Get branch-specific subjects
     subjects = execute_query(f'''
-        SELECT id, code, name
+        SELECT id, code, name, is_lab
         FROM subjects
         WHERE scheme_id = {placeholder}
           AND semester_id = {placeholder}
@@ -4180,7 +4887,7 @@ def admin_api_subjects():
     
     # Also get common subjects for this semester
     common_subjects = execute_query(f'''
-        SELECT id, code, name
+        SELECT id, code, name, is_lab
         FROM subjects
         WHERE scheme_id = {placeholder}
           AND semester_id = {placeholder}

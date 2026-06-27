@@ -6,16 +6,18 @@
 <section class="page-header py-5 bg-primary text-white text-center" style="background: linear-gradient(135deg, #4361ee 0%, #7209b7 100%);">
     <div class="container">
         <h1 data-aos="fade-down">Team Management</h1>
-        <p class="lead" data-aos="fade-up">Add, edit, and manage StudyNova team members and founders.</p>
+        <p class="lead" data-aos="fade-up">Edit and manage StudyNova team members. Note: Adding or deleting team members is disabled. The system maintains exactly 3 fixed team members.</p>
     </div>
 </section>
 
 <section class="admin-content py-5">
     <div class="container">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="h4">Team Members</h2>
-            <a href="{{ url_for('admin_add_team_member') }}" class="btn btn-success">Add Team Member</a>
+        <div class="alert alert-info" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Note:</strong> StudyNova has exactly 3 fixed team members. You can only edit their details. Adding or removing team members is not allowed.
         </div>
+
+        <h2 class="h4 mb-4">Team Members</h2>
 
         {% if team_members %}
         <div class="table-responsive">
@@ -24,7 +26,7 @@
                     <tr>
                         <th scope="col">Name</th>
                         <th scope="col">Title</th>
-                        <th scope="col">Founder</th>
+                        <th scope="col">Role</th>
                         <th scope="col">Active</th>
                         <th scope="col">Order</th>
                         <th scope="col">Actions</th>
@@ -33,16 +35,15 @@
                 <tbody>
                     {% for member in team_members %}
                     <tr>
-                        <td>{{ member.name }}</td>
+                        <td><strong>{{ member.name }}</strong></td>
                         <td>{{ member.title or '—' }}</td>
-                        <td>{{ 'Yes' if member.is_founder else 'No' }}</td>
+                        <td>{{ member.role or '—' }}</td>
                         <td>{{ 'Yes' if member.is_active else 'No' }}</td>
                         <td>{{ member.sort_order or 0 }}</td>
                         <td>
-                            <a href="{{ url_for('admin_edit_team_member', member_id=member.id) }}" class="btn btn-sm btn-primary me-1">Edit</a>
-                            <form action="{{ url_for('admin_delete_team_member', member_id=member.id) }}" method="post" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this team member?');">Delete</button>
-                            </form>
+                            <a href="{{ url_for('admin_edit_team_member', member_id=member.id) }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-edit me-1"></i>Edit
+                            </a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -50,7 +51,7 @@
             </table>
         </div>
         {% else %}
-        <div class="alert alert-info">No team members have been added yet. Use the button above to create a new profile.</div>
+        <div class="alert alert-warning">No team members found in the system.</div>
         {% endif %}
     </div>
 </section>

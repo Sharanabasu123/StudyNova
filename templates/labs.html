@@ -1,0 +1,74 @@
+{% extends 'layout.html' %}
+
+{% block title %}Lab Programs - StudyNova{% endblock %}
+
+{% block content %}
+<section class="py-4">
+  <div class="row g-4 align-items-center">
+    <div class="col-lg-8">
+      <div class="p-4 rounded-4 shadow-sm border" style="background: linear-gradient(135deg, #f5ebff 0%, #ffffff 100%);">
+        <span class="badge rounded-pill bg-primary mb-3">Interactive Programming Portal</span>
+        <h1 class="display-6 fw-bold text-dark">Lab programs, reimagined for modern students</h1>
+        <p class="text-muted mb-0">Browse lab subjects, explore published programs, copy code, review viva questions, and track progress in a mobile-first experience.</p>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body">
+          <h5 class="card-title mb-3">Search & Filter</h5>
+          <form method="get" class="d-grid gap-2">
+            <input type="text" name="search" class="form-control" placeholder="Search subject or code" value="{{ search or '' }}">
+            <div class="row g-2">
+              <div class="col">
+                <input type="text" name="branch" class="form-control" placeholder="Branch" value="{{ branch or '' }}">
+              </div>
+              <div class="col">
+                <input type="text" name="scheme" class="form-control" placeholder="Scheme" value="{{ scheme or '' }}">
+              </div>
+            </div>
+            <input type="text" name="semester" class="form-control" placeholder="Semester" value="{{ semester or '' }}">
+            <button type="submit" class="btn btn-primary">Apply Filters</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="py-2">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h4 mb-0">Available Lab Subjects</h2>
+    {% if session.get('user_role') == 'admin' %}
+    <a href="{{ url_for('admin_labs') }}" class="btn btn-outline-primary btn-sm">Admin Manage</a>
+    {% endif %}
+  </div>
+
+  {% if subjects %}
+  <div class="row g-4">
+    {% for subject in subjects %}
+    <div class="col-md-6 col-xl-4">
+      <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden">
+        <img src="{{ subject.subject_image_url or 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80' }}" class="card-img-top" alt="{{ subject.name }}" style="height: 180px; object-fit: cover;">
+        <div class="card-body d-flex flex-column">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <h5 class="card-title mb-1">{{ subject.name }}</h5>
+            <span class="badge bg-primary-subtle text-primary">{{ subject.code }}</span>
+          </div>
+          <p class="text-muted small mb-3">{{ subject.description or 'Interactive experiments with code, outputs, and viva prep.' }}</p>
+          <div class="row text-muted small mb-3">
+            <div class="col-6"><i class="fas fa-university me-1"></i>{{ subject.branch }}</div>
+            <div class="col-6"><i class="fas fa-layer-group me-1"></i>Sem {{ subject.semester }}</div>
+            <div class="col-6"><i class="fas fa-star me-1"></i>{{ subject.credits }} Credits</div>
+            <div class="col-6"><i class="fas fa-file-code me-1"></i>Scheme {{ subject.scheme }}</div>
+          </div>
+          <a href="{{ url_for('lab_subject', subject_id=subject.id) }}" class="btn btn-outline-primary mt-auto">Open Programs</a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-info rounded-4">No lab subjects match the selected filters yet. Try clearing the search or contact the admin.</div>
+  {% endif %}
+</section>
+{% endblock %}

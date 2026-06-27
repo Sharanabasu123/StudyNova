@@ -1,0 +1,505 @@
+{% extends 'layout.html' %}
+
+{% block title %}{{ subject.name }} - StudyNova{% endblock %}
+
+{% block content %}
+<style>
+    .subject-header {
+        padding: 20px 15px 10px 15px;
+        text-align: left;
+    }
+    .subject-header h1 {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 0;
+        color: #000;
+    }
+    .subject-meta {
+        display: flex;
+        gap: 15px;
+        margin-top: 8px;
+        color: #444;
+        font-size: 14px;
+    }
+    .subject-meta span {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .subject-banner {
+        width: 100%;
+        border-radius: 20px;
+        margin: 10px 0;
+        overflow: hidden;
+        border: 3px solid #6a0dad;
+        background: linear-gradient(135deg, #000 0%, #222 100%);
+        position: relative;
+    }
+    .subject-banner::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 20% 30%, rgba(106,13,173,0.3) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 70%, rgba(106,13,173,0.2) 0%, transparent 50%);
+    }
+    .subject-banner-content {
+        position: relative;
+        padding: 50px 20px;
+        text-align: center;
+        color: white;
+    }
+    .subject-banner-content h2 {
+        font-size: 28px;
+        font-weight: 900;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        margin: 0 0 20px 0;
+    }
+    .subject-banner-content .watermark {
+        position: absolute;
+        bottom: 10px;
+        right: 15px;
+        color: rgba(255,255,255,0.7);
+        font-weight: 500;
+    }
+    .subject-info-card {
+        background: white;
+        border-radius: 20px;
+        padding: 20px;
+        margin: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        border: 1px solid #ddd;
+    }
+    .subject-info-card .banner-title {
+        background: linear-gradient(135deg, #000, #222);
+        color: white;
+        padding: 15px;
+        border-radius: 12px;
+        text-align: center;
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
+    .info-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: center;
+    }
+    .info-tag {
+        background: linear-gradient(135deg, #6a0dad, #4b0082);
+        color: white;
+        padding: 8px 15px;
+        border-radius: 10px;
+        font-weight: 700;
+        border: 2px solid white;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .info-tag .label {
+        color: rgba(255,255,255,0.85);
+        font-size: 13px;
+    }
+    .info-tag .value {
+        background: white;
+        color: #6a0dad;
+        padding: 3px 10px;
+        border-radius: 5px;
+        font-size: 14px;
+        margin-left: 8px;
+    }
+    .module-card {
+        background: white;
+        border-radius: 20px;
+        padding: 20px;
+        margin: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        border: 1px solid #ddd;
+    }
+    .module-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #000;
+        text-align: center;
+        margin-bottom: 20px;
+        border: 2px solid #000;
+        border-radius: 10px;
+        padding: 5px 15px;
+        display: inline-block;
+        position: relative;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    .module-content {
+        color: #000;
+        font-size: 17px;
+        line-height: 1.8;
+    }
+    .module-content strong {
+        font-weight: 900;
+    }
+    .module-content .highlight {
+        color: #6a0dad;
+        font-weight: 900;
+    }
+    .download-btn {
+        width: 100%;
+        padding: 15px;
+        border: none;
+        border-radius: 12px;
+        font-size: 17px;
+        font-weight: 900;
+        cursor: pointer;
+        margin-top: 15px;
+        background: linear-gradient(135deg, #6a0dad, #4b0082);
+        color: white;
+        box-shadow: 0 4px 8px rgba(106,13,173,0.3);
+        border: 2px solid white;
+    }
+    .download-btn:hover {
+        transform: translateY(-2px);
+    }
+    .pdf-viewer-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        z-index: 10000;
+        padding: 20px;
+    }
+    .pdf-viewer-container {
+        background: white;
+        width: 100%;
+        height: 100%;
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    .pdf-viewer-header {
+        background: linear-gradient(135deg, #6a0dad, #4b0082);
+        color: white;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .pdf-close-btn {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 28px;
+        cursor: pointer;
+    }
+    .pdf-viewer-body {
+        flex: 1;
+        width: 100%;
+        overflow: auto;
+    }
+    .pdf-iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+    .comment-section {
+        margin-top: 30px;
+    }
+    .comment-form {
+        background: white;
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin: 0 15px 20px 15px;
+    }
+    .comment-input {
+        width: 100%;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 10px;
+        font-size: 14px;
+    }
+    .comment-submit {
+        background: linear-gradient(135deg, #6a0dad, #4b0082);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        float: right;
+    }
+    .comment-clearfix::after {
+        content: "";
+        clear: both;
+        display: table;
+    }
+    .comment-item {
+        background: white;
+        border-radius: 15px;
+        padding: 15px;
+        margin: 0 15px 15px 15px;
+        box-shadow: 0 1px 5px rgba(0,0,0,0.08);
+    }
+    .comment-author {
+        font-weight: 600;
+        color: #000;
+        margin-bottom: 5px;
+    }
+    .comment-date {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 10px;
+    }
+    .comment-text {
+        color: #333;
+        line-height: 1.6;
+    }
+</style>
+
+<div class="subject-header">
+    <h1>{{ subject.name }} {{ subject.code }}</h1>
+    <div class="subject-meta">
+        <span><i class="far fa-clock"></i> 01-12-2024</span>
+        <span><i class="far fa-clock"></i> 2 min read</span>
+        <span><i class="far fa-eye"></i> 156K</span>
+        <span><i class="fas fa-heart" style="color:#ff4757"></i> 83</span>
+    </div>
+</div>
+
+<div class="subject-banner">
+    <div class="subject-banner-content">
+        <h2>{{ subject.name }}</h2>
+        <div class="watermark">studynova.com</div>
+    </div>
+</div>
+
+<div class="subject-info-card">
+    <div class="banner-title">{{ subject.name }} {{ subject.code }}</div>
+    <div class="info-tags">
+        <div class="info-tag">
+            <span class="label">Course Code:</span>
+            <span class="value">{{ subject.code or 'BCS401' }}</span>
+        </div>
+        <div class="info-tag">
+            <span class="label">Credits:</span>
+            <span class="value">{{ subject.credits or '03' }}</span>
+        </div>
+        <div class="info-tag">
+            <span class="label">CIE Marks:</span>
+            <span class="value">50</span>
+        </div>
+        <div class="info-tag">
+            <span class="label">SEE Marks:</span>
+            <span class="value">50</span>
+        </div>
+        <div class="info-tag">
+            <span class="label">Total Marks:</span>
+            <span class="value">100</span>
+        </div>
+        <div class="info-tag">
+            <span class="label">Exam Hours:</span>
+            <span class="value">03</span>
+        </div>
+        <div class="info-tag">
+            <span class="label">Total Hours of Pedagogy:</span>
+            <span class="value">40H</span>
+        </div>
+        <div class="info-tag">
+            <span class="label">Teaching Hours/Weeks:</span>
+            <span class="value">L:T:P:S\3:0:0:0</span>
+        </div>
+    </div>
+</div>
+
+<div class="module-card">
+    <div class="module-title">MODULE-1</div>
+    <div class="module-content">
+        <span class="highlight"><strong>Introduction:</strong></span> What is an Algorithm?, Fundamentals of Algorithmic Problem Solving.<br><br>
+        <strong>Fundamentals of the Analysis of Algorithm Efficiency:</strong> Analysis Framework, Asymptotic Notations and Basic Efficiency Classes, Mathematical Analysis of Non recursive Algorithms, Mathematical Analysis of Recursive Algorithms.<br><br>
+        <strong>Brute Force Approaches:</strong> Selection Sort and Bubble Sort, Sequential Search and Brute Force String Matching.
+    </div>
+    <button class="download-btn" onclick="openPdfViewer('textbook', 1)">
+        DOWNLOAD TEXTBOOK <i class="fas fa-cloud-download-alt"></i>
+    </button>
+    <button class="download-btn" onclick="openPdfViewer('written', 1)">
+        DOWNLOAD WRITTEN <i class="fas fa-cloud-download-alt"></i>
+    </button>
+</div>
+
+<div class="module-card">
+    <div class="module-title">MODULE-2</div>
+    <div class="module-content">
+        <span class="highlight"><strong>Brute Force Approaches (contd..):</strong></span> Exhaustive Search (Travelling Salesman problem and Knapsack Problem).<br><br>
+        <strong>Decrease and Conquer:</strong> Insertion Sort, Topological Sorting.
+    </div>
+    <button class="download-btn" onclick="openPdfViewer('textbook', 2)">
+        DOWNLOAD TEXTBOOK <i class="fas fa-cloud-download-alt"></i>
+    </button>
+    <button class="download-btn" onclick="openPdfViewer('written', 2)">
+        DOWNLOAD WRITTEN <i class="fas fa-cloud-download-alt"></i>
+    </button>
+</div>
+
+<div class="module-card">
+    <div class="module-title">MODULE-3</div>
+    <div class="module-content">
+        <span class="highlight"><strong>Transform and Conquer:</strong></span> Balanced Search Trees, Heaps and Heapsort.<br><br>
+        <strong>Space Time Tradeoffs:</strong> Sorting by Counting: Comparison counting sort, Input Enhancement in String Matching: Horspool's Algorithm.
+    </div>
+    <button class="download-btn" onclick="openPdfViewer('textbook', 3)">
+        DOWNLOAD TEXTBOOK <i class="fas fa-cloud-download-alt"></i>
+    </button>
+    <button class="download-btn" onclick="openPdfViewer('written', 3)">
+        DOWNLOAD WRITTEN <i class="fas fa-cloud-download-alt"></i>
+    </button>
+</div>
+
+<div class="module-card">
+    <div class="module-title">MODULE-4</div>
+    <div class="module-content">
+        <span class="highlight"><strong>Dynamic Programming:</strong></span> Knapsack Problem and Memory functions, Warshall's and Floyd's Algorithms.<br><br>
+        <strong>Greedy Technique:</strong> Prim's Algorithm, Kruskal's Algorithm, Dijkstra's Algorithm, Huffman Trees.
+    </div>
+    <button class="download-btn" onclick="openPdfViewer('textbook', 4)">
+        DOWNLOAD TEXTBOOK <i class="fas fa-cloud-download-alt"></i>
+    </button>
+    <button class="download-btn" onclick="openPdfViewer('written', 4)">
+        DOWNLOAD WRITTEN <i class="fas fa-cloud-download-alt"></i>
+    </button>
+</div>
+
+<div class="module-card">
+    <div class="module-title">MODULE-5</div>
+    <div class="module-content">
+        <span class="highlight"><strong>Iterative Improvement:</strong></span> The Maximum-Flow Problem, Maximum Matching in Bipartite Graphs, The Stable Marriage Problem.<br><br>
+        <strong>Limitation of Algorithm Power:</strong> Lower-Bound Arguments, Decision Trees, P, NP, and NP-Complete Problems.
+    </div>
+    <button class="download-btn" onclick="openPdfViewer('textbook', 5)">
+        DOWNLOAD TEXTBOOK <i class="fas fa-cloud-download-alt"></i>
+    </button>
+    <button class="download-btn" onclick="openPdfViewer('written', 5)">
+        DOWNLOAD WRITTEN <i class="fas fa-cloud-download-alt"></i>
+    </button>
+</div>
+
+<div class="comment-section">
+    <div class="comment-form" style="background:white; border-radius:20px; padding:20px; box-shadow:0 2px 10px rgba(0,0,0,0.1); border:1px solid #ddd; margin:15px;">
+        <input type="text" class="comment-input" placeholder="Your Comment" style="width:100%; border:1px solid #ddd; border-radius:10px; padding:15px; margin-bottom:10px; font-size:16px;">
+        <input type="text" class="comment-input" placeholder="Enter your Name*" style="width:100%; border:1px solid #ddd; border-radius:10px; padding:15px; margin-bottom:10px; font-size:16px;">
+        <input type="email" class="comment-input" placeholder="Enter your Email*" style="width:100%; border:1px solid #ddd; border-radius:10px; padding:15px; margin-bottom:10px; font-size:16px;">
+        <button class="download-btn" style="float:right; width:auto; padding:12px 30px;">Post Comment</button>
+        <div class="clearfix" style="clear:both;"></div>
+    </div>
+
+    <h3 style="border-bottom:3px solid #6a0dad; padding:10px 15px; margin:0; color:#000; font-weight:bold;">25 COMMENTS</h3>
+
+    <div class="comment-item" style="background:white; border-radius:15px; padding:15px; margin:15px; box-shadow:0 1px 5px rgba(0,0,0,0.08); border:1px solid #eee;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+            <div class="comment-avatar" style="width:40px; height:40px; border-radius:50%; background:#eee; display:flex; justify-content:center; align-items:center; font-weight:bold; color:#666;">
+                R
+            </div>
+            <div class="comment-author" style="font-weight:600; color:#000;">RUDRESH M</div>
+        </div>
+        <div class="comment-date" style="font-size:12px; color:#666; margin-bottom:10px;"><i class="far fa-clock mr-1"></i> 07-01-2025 9:57 PM</div>
+        <div class="comment-text" style="color:#333; line-height:1.6;">Hai i dont know why this website is taking too much time to open it is saying ""Checking your browser before accessing. Just a moment..."" It is so much irritation that too in VTU exams time please fi this issue as soon as possible we are depended on your notes</div>
+        <div style="margin-top:10px;">
+            <button style="border:none; background:none; color:#6a0dad; cursor:pointer; font-weight:600;">
+                <i class="fas fa-thumbs-up mr-1"></i> 11
+            </button>
+            <button style="border:none; background:none; color:#ff4757; cursor:pointer; font-weight:600; margin-left:10px;">
+                <i class="fas fa-thumbs-down mr-1"></i> -3
+            </button>
+            <button style="border:none; background:none; color:#666; cursor:pointer; font-weight:600; margin-left:15px;">
+                <i class="fas fa-reply mr-1"></i> Reply
+            </button>
+        </div>
+        <div style="margin-top:15px; margin-left:30px; border-left:3px solid #6a0dad; padding-left:15px;">
+            <div class="comment-item" style="background:#f5f5f5; border-radius:10px; padding:12px;">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;">
+                    <div class="comment-avatar" style="width:35px; height:35px; border-radius:50%; background:#222; display:flex; justify-content:center; align-items:center; font-weight:bold; color:#fff; font-size:14px;">
+                        𝒱𝒸
+                    </div>
+                    <div class="comment-author" style="font-weight:600; color:#000; font-size:15px; display:flex; gap:8px; align-items:center;">
+                        vtu circle
+                        <span style="background:#10b981; color:white; font-size:11px; padding:3px 8px; border-radius:5px; font-weight:bold;">Author</span>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                    <span style="font-size:12px; color:#6a0dad; font-weight:600;"><i class="fas fa-reply"></i> Reply to RUDRESH M</span>
+                    <span style="margin-left:auto; font-size:11px; color:#666;"><i class="far fa-clock mr-1"></i> 08-01-2025 1:09 AM</span>
+                </div>
+                <div class="comment-text" style="color:#333; line-height:1.5; font-size:15px;">sorry sir because of high traffic it will happened sometimes try to clear your browser cache and then try... After the completion of exam i will upgrade the plan then the issue will be solved... Because of exam only i didn't upgrade...</div>
+                <div style="margin-top:8px;">
+                    <button style="border:none; background:none; color:#6a0dad; cursor:pointer; font-weight:600; font-size:13px;">
+                        <i class="fas fa-thumbs-up mr-1"></i> 8
+                    </button>
+                    <button style="border:none; background:none; color:#ff4757; cursor:pointer; font-weight:600; margin-left:8px; font-size:13px;">
+                        <i class="fas fa-thumbs-down mr-1"></i> -3
+                    </button>
+                    <button style="border:none; background:none; color:#666; cursor:pointer; font-weight:600; margin-left:12px; font-size:13px;">
+                        <i class="fas fa-reply mr-1"></i> Reply
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="comment-item" style="background:white; border-radius:15px; padding:15px; margin:15px; box-shadow:0 1px 5px rgba(0,0,0,0.08); border:1px solid #eee;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+            <div class="comment-avatar" style="width:40px; height:40px; border-radius:50%; background:#eee; display:flex; justify-content:center; align-items:center; font-weight:bold; color:#666;">
+                I
+            </div>
+            <div class="comment-author" style="font-weight:600; color:#000;">Ishank Mourya</div>
+        </div>
+        <div class="comment-date" style="font-size:12px; color:#666; margin-bottom:10px;"><i class="far fa-clock mr-1"></i> 06-03-2025 8:27 PM</div>
+        <div class="comment-text" style="color:#333; line-height:1.6;">Hi sir, Thank you sir for providing notes and helping students and it is ve usefull to the students who are studying engineering. Sir can you provide Graph Theory for 4th CSE students as fast as you can so it very necessary for us to study and also 5th module notes of Microcontr Subject</div>
+        <div style="margin-top:10px;">
+            <button style="border:none; background:none; color:#6a0dad; cursor:pointer; font-weight:600;">
+                <i class="fas fa-thumbs-up mr-1"></i> 2
+            </button>
+            <button style="border:none; background:none; color:#ff4757; cursor:pointer; font-weight:600; margin-left:10px;">
+                <i class="fas fa-thumbs-down mr-1"></i> 0
+            </button>
+            <button style="border:none; background:none; color:#666; cursor:pointer; font-weight:600; margin-left:15px;">
+                <i class="fas fa-reply mr-1"></i> Reply
+            </button>
+        </div>
+    </div>
+
+    <div class="comment-item" style="background:white; border-radius:15px; padding:15px; margin:15px; box-shadow:0 1px 5px rgba(0,0,0,0.08); border:1px solid #eee;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+            <div class="comment-avatar" style="width:40px; height:40px; border-radius:50%; background:#eee; display:flex; justify-content:center; align-items:center; font-weight:bold; color:#666;">
+                B
+            </div>
+            <div class="comment-author" style="font-weight:600; color:#000;">Bharath Kumar G</div>
+        </div>
+    </div>
+</div>
+
+<div class="pdf-viewer-modal" id="pdfViewerModal">
+    <div class="pdf-viewer-container">
+        <div class="pdf-viewer-header">
+            <h3 style="margin:0;" id="pdfViewerTitle">Viewing PDF</h3>
+            <button class="pdf-close-btn" onclick="closePdfViewer()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="pdf-viewer-body">
+            <iframe class="pdf-iframe" id="pdfIframe"></iframe>
+        </div>
+    </div>
+</div>
+
+<script>
+function openPdfViewer(type, moduleNum) {
+    alert('PDF viewer coming soon! Files will be displayed here when available!');
+}
+function closePdfViewer() {
+    document.getElementById('pdfViewerModal').style.display = 'none';
+    document.getElementById('pdfIframe').src = '';
+}
+</script>
+{% endblock %}

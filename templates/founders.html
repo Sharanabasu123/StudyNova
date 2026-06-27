@@ -3,124 +3,389 @@
 {% block title %}Our Founders - StudyNova{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Founders Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card bg-gradient-primary text-white">
-                <div class="card-body">
-                    <h2 class="mb-0"><i class="fas fa-users me-2"></i>Our Founders</h2>
-                    <p class="mb-0 mt-2">Meet the visionaries behind StudyNova</p>
-                </div>
-            </div>
-        </div>
-    </div>
+<style>
+    :root {
+        --primary-purple: #7209b7;
+        --secondary-purple: #560bad;
+        --light-purple: #e0d5ff;
+        --accent-purple: #b5179e;
+    }
 
-    <!-- Founders Grid -->
-    <div class="row g-4">
+    .founders-hero {
+        background: linear-gradient(135deg, var(--primary-purple) 0%, var(--secondary-purple) 100%);
+        color: white;
+        padding: 60px 20px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .founders-hero::before {
+        content: '';
+        position: absolute;
+        width: 300px;
+        height: 300px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        top: -50px;
+        right: -50px;
+    }
+
+    .founders-hero::after {
+        content: '';
+        position: absolute;
+        width: 200px;
+        height: 200px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 50%;
+        bottom: -30px;
+        left: -30px;
+    }
+
+    .founders-hero h1 {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin-bottom: 15px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .founders-hero p {
+        font-size: 1.3rem;
+        opacity: 0.9;
+        margin-bottom: 0;
+        position: relative;
+        z-index: 1;
+    }
+
+    .founders-container {
+        max-width: 1200px;
+        margin: 80px auto;
+        padding: 0 20px;
+    }
+
+    .founders-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 40px;
+        margin-bottom: 80px;
+    }
+
+    .founder-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        padding: 40px 30px;
+        text-align: center;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .founder-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-purple), var(--accent-purple));
+        transform: scaleX(0);
+        transition: transform 0.3s ease;
+        transform-origin: left;
+    }
+
+    .founder-card:hover::before {
+        transform: scaleX(1);
+    }
+
+    .founder-card:hover {
+        transform: translateY(-15px);
+        box-shadow: 0 20px 60px rgba(114, 9, 183, 0.15);
+    }
+
+    .profile-image-wrapper {
+        margin-bottom: 25px;
+        position: relative;
+    }
+
+    .profile-image {
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 5px solid var(--light-purple);
+        margin: 0 auto;
+        display: block;
+        box-shadow: 0 10px 30px rgba(114, 9, 183, 0.2);
+        transition: transform 0.3s ease;
+    }
+
+    .founder-card:hover .profile-image {
+        transform: scale(1.05);
+    }
+
+    .profile-placeholder {
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--light-purple), #d0bfff);
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3.5rem;
+        color: var(--primary-purple);
+        border: 5px solid var(--light-purple);
+        box-shadow: 0 10px 30px rgba(114, 9, 183, 0.2);
+    }
+
+    .founder-name {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin: 20px 0 5px 0;
+    }
+
+    .founder-position {
+        color: var(--primary-purple);
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 8px;
+    }
+
+    .founder-role {
+        color: var(--accent-purple);
+        font-size: 0.95rem;
+        font-weight: 500;
+        margin-bottom: 15px;
+    }
+
+    .founder-info {
+        font-size: 0.9rem;
+        color: #666;
+        line-height: 1.6;
+        margin: 15px 0;
+        padding: 15px 0;
+        border-top: 1px solid #f0f0f0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .founder-info-item {
+        margin: 8px 0;
+    }
+
+    .founder-info-label {
+        font-weight: 600;
+        color: var(--primary-purple);
+    }
+
+    .founder-bio {
+        font-size: 0.9rem;
+        color: #555;
+        line-height: 1.7;
+        margin: 20px 0;
+        text-align: left;
+        background: #f9f7ff;
+        padding: 15px;
+        border-radius: 10px;
+        border-left: 4px solid var(--primary-purple);
+    }
+
+    .social-links {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-top: 20px;
+        flex-wrap: wrap;
+    }
+
+    .social-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        border: 2px solid var(--light-purple);
+        color: var(--primary-purple);
+        background: white;
+    }
+
+    .social-btn:hover {
+        background: var(--primary-purple);
+        color: white;
+        border-color: var(--primary-purple);
+        transform: scale(1.15) rotate(-10deg);
+    }
+
+    .social-btn.disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    .social-btn.disabled:hover {
+        background: white;
+        color: var(--primary-purple);
+        border-color: var(--light-purple);
+        transform: none;
+    }
+
+    .mission-section {
+        background: linear-gradient(135deg, var(--light-purple), rgba(224, 213, 255, 0.5));
+        border-radius: 20px;
+        padding: 50px 40px;
+        margin-top: 80px;
+        text-align: center;
+    }
+
+    .mission-section h2 {
+        color: var(--primary-purple);
+        font-size: 2.2rem;
+        margin-bottom: 30px;
+        font-weight: 700;
+    }
+
+    .mission-section p {
+        color: #333;
+        font-size: 1.1rem;
+        line-height: 1.8;
+        max-width: 800px;
+        margin: 0 auto 20px;
+    }
+
+    @media (max-width: 768px) {
+        .founders-hero h1 {
+            font-size: 2.5rem;
+        }
+
+        .founders-grid {
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+
+        .founder-card {
+            padding: 30px 20px;
+        }
+
+        .mission-section {
+            padding: 40px 20px;
+        }
+
+        .mission-section h2 {
+            font-size: 1.8rem;
+        }
+    }
+</style>
+
+<!-- Hero Section -->
+<div class="founders-hero">
+    <h1>Our Founders</h1>
+    <p>Meet the visionaries behind StudyNova</p>
+</div>
+
+<!-- Founders Section -->
+<div class="founders-container">
+    <div class="founders-grid">
         {% if founders %}
             {% for founder in founders %}
-            <div class="col-md-6 col-lg-4">
-                <div class="card h-100 hover-lift">
-                    <div class="card-body text-center">
-                        {% if founder.profile_url %}
-                        <img src="{{ founder.profile_url }}" alt="{{ founder.name }}" class="rounded-circle mb-3" style="width: 130px; height: 130px; object-fit: cover;">
-                        {% else %}
-                        <div class="mb-3">
-                            <i class="fas fa-user-circle fa-5x text-primary"></i>
+            <div class="founder-card">
+                <div class="profile-image-wrapper">
+                    {% if founder.profile_url %}
+                        <img src="{{ founder.profile_url }}" alt="{{ founder.name }}" class="profile-image">
+                    {% else %}
+                        <div class="profile-placeholder">
+                            <i class="fas fa-user-circle"></i>
                         </div>
-                        {% endif %}
-                        <h5 class="card-title">{{ founder.name }}</h5>
-                        <p class="text-muted mb-2">{{ founder.title or 'Founder & CEO' }}</p>
-                        <p class="card-text small">{{ founder.bio or 'Leader helping to build StudyNova for students.' }}</p>
-                        <div class="d-flex justify-content-center gap-2 mt-3">
-                            {% if founder.linkedin_url %}
-                            <a href="{{ founder.linkedin_url }}" class="btn btn-outline-primary btn-sm" target="_blank" rel="noopener noreferrer">
-                                <i class="fab fa-linkedin me-1"></i>LinkedIn
-                            </a>
-                            {% endif %}
-                            {% if founder.github_url %}
-                            <a href="{{ founder.github_url }}" class="btn btn-outline-dark btn-sm" target="_blank" rel="noopener noreferrer">
-                                <i class="fab fa-github me-1"></i>GitHub
-                            </a>
-                            {% endif %}
+                    {% endif %}
+                </div>
+
+                <h3 class="founder-name">{{ founder.name }}</h3>
+                <p class="founder-position">{{ founder.title or 'Founder' }}</p>
+                {% if founder.role %}
+                <p class="founder-role">{{ founder.role }}</p>
+                {% endif %}
+
+                <!-- Contact & College Info -->
+                <div class="founder-info">
+                    {% if founder.email %}
+                        <div class="founder-info-item">
+                            <span class="founder-info-label"><i class="fas fa-envelope"></i> Email:</span><br>
+                            <a href="mailto:{{ founder.email }}" style="color: #666; text-decoration: none;">{{ founder.email }}</a>
                         </div>
-                    </div>
+                    {% endif %}
+                    {% if founder.phone %}
+                        <div class="founder-info-item">
+                            <span class="founder-info-label"><i class="fas fa-phone"></i> Phone:</span><br>
+                            {{ founder.phone }}
+                        </div>
+                    {% endif %}
+                    {% if founder.college %}
+                        <div class="founder-info-item">
+                            <span class="founder-info-label"><i class="fas fa-graduation-cap"></i> College:</span><br>
+                            {{ founder.college }}
+                        </div>
+                    {% endif %}
+                    {% if founder.department %}
+                        <div class="founder-info-item">
+                            <span class="founder-info-label"><i class="fas fa-book"></i> Department:</span><br>
+                            {{ founder.department }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Bio -->
+                {% if founder.bio %}
+                <p class="founder-bio">{{ founder.bio }}</p>
+                {% endif %}
+
+                <!-- Social Links -->
+                <div class="social-links">
+                    {% if founder.github_url %}
+                        <a href="{{ founder.github_url }}" target="_blank" rel="noopener noreferrer" class="social-btn" title="GitHub">
+                            <i class="fab fa-github"></i>
+                        </a>
+                    {% else %}
+                        <div class="social-btn disabled" title="GitHub - Coming soon">
+                            <i class="fab fa-github"></i>
+                        </div>
+                    {% endif %}
+
+                    {% if founder.linkedin_url %}
+                        <a href="{{ founder.linkedin_url }}" target="_blank" rel="noopener noreferrer" class="social-btn" title="LinkedIn">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                    {% else %}
+                        <div class="social-btn disabled" title="LinkedIn - Coming soon">
+                            <i class="fab fa-linkedin-in"></i>
+                        </div>
+                    {% endif %}
+
+                    {% if founder.instagram_url %}
+                        <a href="{{ founder.instagram_url }}" target="_blank" rel="noopener noreferrer" class="social-btn" title="Instagram">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                    {% else %}
+                        <div class="social-btn disabled" title="Instagram - Coming soon">
+                            <i class="fab fa-instagram"></i>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
             {% endfor %}
         {% else %}
-        <div class="col-md-6 col-lg-4">
-            <div class="card h-100 hover-lift">
-                <div class="card-body text-center">
-                    <div class="mb-3">
-                        <i class="fas fa-user-circle fa-5x text-primary"></i>
-                    </div>
-                    <h5 class="card-title">Sharanabasu Malasidda Police Patil</h5>
-                    <p class="text-muted mb-2">Founder & CEO</p>
-                    <p class="card-text small">Visionary leader with a passion for education technology and student empowerment.</p>
-                    <div class="d-flex justify-content-center gap-2 mt-3">
-                        <a href="https://www.linkedin.com/in/sharanabasu-police-patil" class="btn btn-outline-primary btn-sm" target="_blank" rel="noopener noreferrer">
-                            <i class="fab fa-linkedin me-1"></i>LinkedIn
-                        </a>
-                        <a href="https://github.com/Sharanabasu123" class="btn btn-outline-dark btn-sm" target="_blank" rel="noopener noreferrer">
-                            <i class="fab fa-github me-1"></i>GitHub
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <p style="text-align: center; color: #999;">No team members have been added yet.</p>
         {% endif %}
     </div>
 
     <!-- Mission Section -->
-    <div class="row mt-5">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="card-title text-center mb-4">Our Mission</h4>
-                    <p class="card-text text-center lead">
-                        StudyNova was founded with a simple yet powerful mission: to make quality education accessible to every student. 
-                        We believe that every student deserves access to comprehensive, well-organized, and easily accessible study materials.
-                    </p>
-                    <p class="card-text text-center mt-3">
-                        Our platform brings together notes, syllabus, question papers, and placement preparation resources in one place, 
-                        helping students focus on learning rather than searching for materials.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Values Section -->
-    <div class="row mt-4">
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-lightbulb fa-3x text-warning mb-3"></i>
-                    <h5 class="card-title">Innovation</h5>
-                    <p class="card-text">Continuously improving the learning experience through technology.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-handshake fa-3x text-success mb-3"></i>
-                    <h5 class="card-title">Collaboration</h5>
-                    <p class="card-text">Building a community where students and educators thrive together.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-heart fa-3x text-danger mb-3"></i>
-                    <h5 class="card-title">Passion</h5>
-                    <p class="card-text">Dedicated to making a difference in students' academic journeys.</p>
-                </div>
-            </div>
-        </div>
+    <div class="mission-section">
+        <h2>💡 Our Mission</h2>
+        <p>At StudyNova, we're committed to empowering students with accessible, high-quality educational resources. Our team works tirelessly to create a platform where every student can find the materials they need to succeed.</p>
+        <p>We believe education should be organized, efficient, and inspiring. That's StudyNova.</p>
     </div>
 </div>
 {% endblock %}

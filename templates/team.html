@@ -1,0 +1,560 @@
+{% extends "layout.html" %}
+
+{% block title %}Meet Our Team - StudyNova{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --primary-purple: #7209b7;
+        --secondary-purple: #560bad;
+        --light-purple: #e0d5ff;
+        --accent-purple: #b5179e;
+        --glass-bg: rgba(255, 255, 255, 0.85);
+        --glass-border: rgba(255, 255, 255, 0.2);
+        --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        --text-primary: #1a1a2e;
+        --text-secondary: #666;
+    }
+
+    body {
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .team-hero {
+        background: linear-gradient(135deg, var(--primary-purple) 0%, var(--secondary-purple) 100%);
+        color: white;
+        padding: 80px 20px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .team-hero::before {
+        content: '';
+        position: absolute;
+        width: 400px;
+        height: 400px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        top: -100px;
+        right: -100px;
+        animation: float 6s ease-in-out infinite;
+    }
+
+    .team-hero::after {
+        content: '';
+        position: absolute;
+        width: 300px;
+        height: 300px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 50%;
+        bottom: -80px;
+        left: -80px;
+        animation: float 8s ease-in-out infinite reverse;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-20px); }
+    }
+
+    .team-hero h1 {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin-bottom: 20px;
+        position: relative;
+        z-index: 1;
+        animation: fadeInDown 1s ease-out;
+    }
+
+    .team-hero p {
+        font-size: 1.25rem;
+        opacity: 0.95;
+        margin-bottom: 0;
+        position: relative;
+        z-index: 1;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+        animation: fadeInUp 1s ease-out 0.2s both;
+    }
+
+    .team-container {
+        max-width: 1400px;
+        margin: 80px auto;
+        padding: 0 20px;
+    }
+
+    .team-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+        gap: 40px;
+        margin-bottom: 80px;
+    }
+
+    .team-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 24px;
+        border: 1px solid var(--glass-border);
+        box-shadow: var(--card-shadow);
+        padding: 40px 30px;
+        text-align: center;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        position: relative;
+        overflow: hidden;
+        opacity: 0;
+        transform: translateY(50px);
+        animation: slideUpFade 0.8s ease-out forwards;
+    }
+
+    .team-card:nth-child(1) { animation-delay: 0.1s; }
+    .team-card:nth-child(2) { animation-delay: 0.2s; }
+    .team-card:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes slideUpFade {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .team-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+        background: linear-gradient(90deg, var(--primary-purple), var(--accent-purple));
+        transform: scaleX(0);
+        transition: transform 0.4s ease;
+        transform-origin: left;
+    }
+
+    .team-card:hover::before {
+        transform: scaleX(1);
+    }
+
+    .team-card:hover {
+        transform: translateY(-15px) scale(1.02);
+        box-shadow: 0 20px 60px rgba(114, 9, 183, 0.25);
+    }
+
+    .profile-image-wrapper {
+        margin-bottom: 25px;
+        position: relative;
+    }
+
+    .profile-image {
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 5px solid var(--light-purple);
+        margin: 0 auto;
+        display: block;
+        box-shadow: 0 10px 30px rgba(114, 9, 183, 0.3);
+        transition: all 0.4s ease;
+    }
+
+    .team-card:hover .profile-image {
+        transform: scale(1.1) rotate(5deg);
+        box-shadow: 0 15px 40px rgba(114, 9, 183, 0.4);
+    }
+
+    .profile-placeholder {
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--light-purple), #d0bfff);
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 4rem;
+        color: var(--primary-purple);
+        border: 5px solid var(--light-purple);
+        box-shadow: 0 10px 30px rgba(114, 9, 183, 0.3);
+    }
+
+    .team-name {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin: 20px 0 8px 0;
+    }
+
+    .team-position {
+        color: var(--primary-purple);
+        font-weight: 700;
+        font-size: 1.1rem;
+        margin-bottom: 5px;
+    }
+
+    .team-role {
+        color: var(--accent-purple);
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 20px;
+    }
+
+    .team-info {
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        line-height: 1.8;
+        margin: 20px 0;
+        padding: 15px 0;
+        border-top: 1px solid rgba(114, 9, 183, 0.1);
+        border-bottom: 1px solid rgba(114, 9, 183, 0.1);
+        text-align: left;
+    }
+
+    .team-info-item {
+        margin: 10px 0;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .team-info-label {
+        font-weight: 700;
+        color: var(--primary-purple);
+        min-width: 90px;
+    }
+
+    .team-info-value a {
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+
+    .team-info-value a:hover {
+        color: var(--primary-purple);
+    }
+
+    .team-bio {
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        line-height: 1.8;
+        margin: 20px 0;
+        text-align: left;
+        background: rgba(114, 9, 183, 0.05);
+        padding: 18px;
+        border-radius: 12px;
+        border-left: 4px solid var(--primary-purple);
+    }
+
+    .action-buttons {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .action-btn {
+        padding: 10px 15px;
+        border-radius: 10px;
+        border: 2px solid var(--primary-purple);
+        background: white;
+        color: var(--primary-purple);
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+    }
+
+    .action-btn:hover {
+        background: var(--primary-purple);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(114, 9, 183, 0.3);
+    }
+
+    .social-links {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-top: 25px;
+        flex-wrap: wrap;
+    }
+
+    .social-btn {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        text-decoration: none;
+        border: 2px solid var(--light-purple);
+        color: var(--primary-purple);
+        background: white;
+    }
+
+    .social-btn:hover {
+        background: var(--primary-purple);
+        color: white;
+        border-color: var(--primary-purple);
+        transform: scale(1.2) rotate(-10deg);
+        box-shadow: 0 8px 20px rgba(114, 9, 183, 0.4);
+    }
+
+    .social-btn.disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    .mission-section {
+        background: linear-gradient(135deg, var(--light-purple), rgba(224, 213, 255, 0.6));
+        border-radius: 24px;
+        padding: 60px 40px;
+        margin-top: 80px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .mission-section h2 {
+        color: var(--primary-purple);
+        font-size: 2.5rem;
+        margin-bottom: 30px;
+        font-weight: 800;
+    }
+
+    .mission-section p {
+        color: var(--text-primary);
+        font-size: 1.15rem;
+        line-height: 1.9;
+        max-width: 900px;
+        margin: 0 auto 20px;
+    }
+
+    /* Dark mode styles */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --glass-bg: rgba(30, 30, 50, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #f0f0f0;
+            --text-secondary: #b0b0b0;
+        }
+
+        .team-card {
+            background: var(--glass-bg);
+        }
+
+        .team-bio {
+            background: rgba(114, 9, 183, 0.15);
+        }
+
+        .action-btn {
+            background: rgba(30, 30, 50, 0.9);
+        }
+
+        .social-btn {
+            background: rgba(30, 30, 50, 0.9);
+        }
+    }
+
+    /* Light mode override if user prefers */
+    @media (prefers-color-scheme: light) {
+        /* Keep default styles */
+    }
+
+    @media (max-width: 768px) {
+        .team-hero h1 {
+            font-size: 2.5rem;
+        }
+
+        .team-hero p {
+            font-size: 1.1rem;
+        }
+
+        .team-grid {
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+
+        .team-card {
+            padding: 30px 20px;
+        }
+
+        .mission-section {
+            padding: 40px 20px;
+        }
+
+        .mission-section h2 {
+            font-size: 1.8rem;
+        }
+
+        .action-buttons {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<!-- Hero Section -->
+<div class="team-hero">
+    <h1>Meet Our Team</h1>
+    <p>The passionate developers behind StudyNova, working to make VTU education simple, organized, and accessible for every student.</p>
+</div>
+
+<!-- Team Section -->
+<div class="team-container">
+    <div class="team-grid">
+        {% for member in team_members %}
+        <div class="team-card">
+            <div class="profile-image-wrapper">
+                {% if 'Sharanabasu' in member.name %}
+                    <img src="{{ url_for('static', filename='images/team/founder.jpeg') }}" alt="{{ member.name }}" class="profile-image">
+                {% elif 'Vamshi' in member.name %}
+                    <img src="{{ url_for('static', filename='images/team/vamshi.jpeg') }}" alt="{{ member.name }}" class="profile-image">
+                {% elif 'Megharaj' in member.name %}
+                    <img src="{{ url_for('static', filename='images/team/megharaj.jpeg') }}" alt="{{ member.name }}" class="profile-image">
+                {% elif member.profile_url %}
+                    <img src="{{ member.profile_url }}" alt="{{ member.name }}" class="profile-image">
+                {% else %}
+                    <div class="profile-placeholder">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                {% endif %}
+            </div>
+
+            <h3 class="team-name">{{ member.name }}</h3>
+            <p class="team-position">{{ member.title or 'Team Member' }}</p>
+            {% if member.role %}
+            <p class="team-role">{{ member.role }}</p>
+            {% endif %}
+
+            <!-- Contact & College Info -->
+            <div class="team-info">
+                {% if member.college %}
+                <div class="team-info-item">
+                    <span class="team-info-label"><i class="fas fa-graduation-cap"></i> College:</span>
+                    <span class="team-info-value">{{ member.college }}</span>
+                </div>
+                {% endif %}
+                {% if member.department %}
+                <div class="team-info-item">
+                    <span class="team-info-label"><i class="fas fa-book"></i> Department:</span>
+                    <span class="team-info-value">{{ member.department }}</span>
+                </div>
+                {% endif %}
+                {% if member.email %}
+                <div class="team-info-item">
+                    <span class="team-info-label"><i class="fas fa-envelope"></i> Email:</span>
+                    <span class="team-info-value"><a href="mailto:{{ member.email }}">{{ member.email }}</a></span>
+                </div>
+                {% endif %}
+                {% if member.phone %}
+                <div class="team-info-item">
+                    <span class="team-info-label"><i class="fas fa-phone"></i> Phone:</span>
+                    <span class="team-info-value">{{ member.phone }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Bio -->
+            {% if member.bio %}
+            <p class="team-bio">{{ member.bio }}</p>
+            {% endif %}
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                {% if member.email %}
+                <a href="mailto:{{ member.email }}" class="action-btn">
+                    <i class="fas fa-envelope"></i> Contact
+                </a>
+                {% endif %}
+                <a href="#" class="action-btn">
+                    <i class="fas fa-user"></i> View Profile
+                </a>
+            </div>
+
+            <!-- Social Links -->
+                <div class="social-links">
+                    {% if member.github_url %}
+                        <a href="{{ member.github_url }}" target="_blank" rel="noopener noreferrer" class="social-btn" title="GitHub">
+                            <i class="fab fa-github"></i>
+                        </a>
+                    {% else %}
+                        <div class="social-btn disabled" title="GitHub - Coming soon">
+                            <i class="fab fa-github"></i>
+                        </div>
+                    {% endif %}
+
+                    {% if member.linkedin_url %}
+                        <a href="{{ member.linkedin_url }}" target="_blank" rel="noopener noreferrer" class="social-btn" title="LinkedIn">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                    {% else %}
+                        <div class="social-btn disabled" title="LinkedIn - Coming soon">
+                            <i class="fab fa-linkedin-in"></i>
+                        </div>
+                    {% endif %}
+
+                    {% if member.instagram_url %}
+                        <a href="{{ member.instagram_url }}" target="_blank" rel="noopener noreferrer" class="social-btn" title="Instagram">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                    {% else %}
+                        <div class="social-btn disabled" title="Instagram - Coming soon">
+                            <i class="fab fa-instagram"></i>
+                        </div>
+                    {% endif %}
+
+                    {% if member.email %}
+                        <a href="mailto:{{ member.email }}" class="social-btn" title="Email">
+                            <i class="fas fa-envelope"></i>
+                        </a>
+                    {% endif %}
+
+                    {% if member.phone %}
+                        <a href="tel:{{ member.phone }}" class="social-btn" title="Phone">
+                            <i class="fas fa-phone"></i>
+                        </a>
+                    {% endif %}
+                </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Mission Section -->
+    <div class="mission-section">
+        <h2>Our Mission</h2>
+        <p>At StudyNova, we're committed to empowering students with accessible, high-quality educational resources. Our team works tirelessly to create a platform where every student can find the materials they need to succeed.</p>
+        <p>We believe education should be organized, efficient, and inspiring. That's StudyNova.</p>
+    </div>
+</div>
+{% endblock %}

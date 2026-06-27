@@ -1,0 +1,200 @@
+{% extends 'layout.html' %}
+
+{% block title %}Lab Admin - StudyNova{% endblock %}
+
+{% block content %}
+<section class="mb-4">
+  <div class="p-4 p-lg-5 rounded-4 text-white shadow-sm" style="background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+      <div>
+        <h1 class="h2 mb-2">Lab Programs Admin</h1>
+        <p class="mb-0 opacity-75">Add, edit, and delete lab subjects and program details from one place.</p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('admin_labs') }}" class="btn btn-light btn-sm">Refresh</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body">
+        {% if form_mode == 'edit_subject' and edit_subject %}
+        <h2 class="h4 mb-3">Edit Lab Subject</h2>
+        <form method="post" action="{{ url_for('admin_edit_lab_subject', subject_id=edit_subject.id) }}" class="d-grid gap-2">
+          <input type="text" class="form-control" name="name" placeholder="Subject Name" value="{{ edit_subject.name }}" required>
+          <input type="text" class="form-control" name="code" placeholder="Code (e.g. BCSL606)" value="{{ edit_subject.code }}" required>
+          <input type="text" class="form-control" name="branch" placeholder="Branch" value="{{ edit_subject.branch or '' }}">
+          <input type="text" class="form-control" name="scheme" placeholder="Scheme" value="{{ edit_subject.scheme or '' }}">
+          <input type="number" class="form-control" name="semester" placeholder="Semester" value="{{ edit_subject.semester or '' }}">
+          <input type="number" class="form-control" name="credits" placeholder="Credits" value="{{ edit_subject.credits or 4 }}">
+          <input type="number" class="form-control" name="cie_marks" placeholder="CIE Marks" value="{{ edit_subject.cie_marks or 40 }}">
+          <input type="number" class="form-control" name="see_marks" placeholder="SEE Marks" value="{{ edit_subject.see_marks or 60 }}">
+          <input type="number" class="form-control" name="total_marks" placeholder="Total Marks" value="{{ edit_subject.total_marks or 100 }}">
+          <input type="text" class="form-control" name="image_url" placeholder="Subject Image URL" value="{{ edit_subject.subject_image_url or '' }}">
+          <textarea class="form-control" name="description" rows="3" placeholder="Description">{{ edit_subject.description or '' }}</textarea>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="is_active" id="subjectActive" {% if edit_subject.is_active %}checked{% endif %}>
+            <label class="form-check-label" for="subjectActive">Active</label>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary">Update Subject</button>
+            <a href="{{ url_for('admin_labs') }}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+        {% else %}
+        <h2 class="h4 mb-3">Add Lab Subject</h2>
+        <form method="post" action="{{ url_for('admin_add_lab_subject') }}" class="d-grid gap-2">
+          <input type="text" class="form-control" name="name" placeholder="Subject Name" required>
+          <input type="text" class="form-control" name="code" placeholder="Code (e.g. BCSL606)" required>
+          <input type="text" class="form-control" name="branch" placeholder="Branch">
+          <input type="text" class="form-control" name="scheme" placeholder="Scheme">
+          <input type="number" class="form-control" name="semester" placeholder="Semester">
+          <input type="number" class="form-control" name="credits" placeholder="Credits" value="4">
+          <input type="number" class="form-control" name="cie_marks" placeholder="CIE Marks" value="40">
+          <input type="number" class="form-control" name="see_marks" placeholder="SEE Marks" value="60">
+          <input type="number" class="form-control" name="total_marks" placeholder="Total Marks" value="100">
+          <input type="text" class="form-control" name="image_url" placeholder="Subject Image URL">
+          <textarea class="form-control" name="description" rows="3" placeholder="Description"></textarea>
+          <button class="btn btn-primary">Save Subject</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if form_mode == 'program' and subject %}
+    <div class="card border-0 shadow-sm rounded-4">
+      <div class="card-body">
+        <h2 class="h4 mb-3">Add Program to {{ subject.name }}</h2>
+        <form method="post" action="{{ url_for('admin_add_lab_program', subject_id=subject.id) }}" class="d-grid gap-2">
+          <input type="number" class="form-control" name="program_number" placeholder="Program Number" required>
+          <input type="text" class="form-control" name="programming_language" placeholder="Programming Language" value="python">
+          <textarea class="form-control" name="question" rows="3" placeholder="VTU question" required></textarea>
+          <textarea class="form-control" name="code" rows="10" placeholder="Program code" required></textarea>
+          <button class="btn btn-primary">Save Program</button>
+        </form>
+      </div>
+    </div>
+    {% elif form_mode == 'edit_program' and edit_program and subject %}
+    <div class="card border-0 shadow-sm rounded-4">
+      <div class="card-body">
+        <h2 class="h4 mb-3">Edit Program for {{ subject.name }}</h2>
+        <form method="post" action="{{ url_for('admin_edit_lab_program', program_id=edit_program.id) }}" class="d-grid gap-2">
+          <input type="number" class="form-control" name="program_number" placeholder="Program Number" value="{{ edit_program.program_number }}" required>
+          <input type="text" class="form-control" name="programming_language" placeholder="Programming Language" value="{{ edit_program.programming_language or 'python' }}">
+          <textarea class="form-control" name="question" rows="3" placeholder="VTU question" required>{{ edit_program.question }}</textarea>
+          <textarea class="form-control" name="code" rows="10" placeholder="Program code" required>{{ edit_program.code }}</textarea>
+          <input type="number" class="form-control" name="sort_order" placeholder="Sort Order" value="{{ edit_program.sort_order or edit_program.program_number }}">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="is_published" id="programPublished" {% if edit_program.is_published %}checked{% endif %}>
+            <label class="form-check-label" for="programPublished">Published</label>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary">Update Program</button>
+            <a href="{{ url_for('admin_labs') }}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm rounded-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2 class="h4 mb-0">Manage Lab Subjects & Programs</h2>
+          <span class="badge bg-primary-subtle text-primary">{{ subjects|length }} Subjects</span>
+        </div>
+        {% if subjects %}
+        <div class="accordion" id="labSubjectsAccordion">
+          {% for subject in subjects %}
+          {% set subject_programs = programs_by_subject.get(subject.id, []) %}
+          <div class="accordion-item border rounded-4 mb-3 overflow-hidden">
+            <h2 class="accordion-header" id="heading{{ subject.id }}">
+              <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ subject.id }}" aria-expanded="{{ 'true' if loop.first else 'false' }}" aria-controls="collapse{{ subject.id }}">
+                <div class="w-100 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 pe-3">
+                  <div>
+                    <div class="fw-semibold">{{ subject.name }}</div>
+                    <div class="small text-muted">{{ subject.code }}{% if subject.branch %} • {{ subject.branch }}{% endif %}{% if subject.semester %} • Sem {{ subject.semester }}{% endif %}</div>
+                  </div>
+                  <div class="d-flex gap-2 flex-wrap">
+                    <span class="badge bg-light text-dark border">{{ subject_programs|length }} Programs</span>
+                    <span class="badge {% if subject.is_active %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+                      {{ 'Active' if subject.is_active else 'Inactive' }}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            </h2>
+            <div id="collapse{{ subject.id }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" aria-labelledby="heading{{ subject.id }}" data-bs-parent="#labSubjectsAccordion">
+              <div class="accordion-body">
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                  <a class="btn btn-primary btn-sm" href="{{ url_for('admin_add_lab_program', subject_id=subject.id) }}">Add Program</a>
+                  <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin_edit_lab_subject', subject_id=subject.id) }}">Edit Subject</a>
+                  <form method="post" action="{{ url_for('admin_delete_lab_subject', subject_id=subject.id) }}" onsubmit="return confirm('Delete this lab subject and all its programs?');">
+                    <button class="btn btn-outline-danger btn-sm" type="submit">Delete Subject</button>
+                  </form>
+                  <a class="btn btn-outline-primary btn-sm" href="{{ url_for('lab_subject', subject_id=subject.id) }}">View Public Page</a>
+                </div>
+
+                {% if subject.description %}
+                <p class="text-muted small mb-3">{{ subject.description }}</p>
+                {% endif %}
+
+                {% if subject_programs %}
+                <div class="table-responsive">
+                  <table class="table align-middle">
+                    <thead>
+                      <tr>
+                        <th>Program</th>
+                        <th>Language</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for program in subject_programs %}
+                      <tr>
+                        <td>
+                          <div class="fw-semibold">Program {{ program.program_number }}</div>
+                          <div class="small text-muted">{{ program.question[:90] }}{% if program.question|length > 90 %}...{% endif %}</div>
+                        </td>
+                        <td><span class="badge bg-light text-dark border">{{ program.programming_language or 'N/A' }}</span></td>
+                        <td>
+                          <span class="badge {% if program.is_published %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+                            {{ 'Published' if program.is_published else 'Draft' }}
+                          </span>
+                        </td>
+                        <td>
+                          <div class="d-flex flex-wrap gap-2">
+                            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin_edit_lab_program', program_id=program.id) }}">Edit</a>
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url_for('lab_program', subject_id=subject.id, program_id=program.id) }}">View</a>
+                            <form method="post" action="{{ url_for('admin_delete_lab_program', program_id=program.id) }}" onsubmit="return confirm('Delete this lab program?');">
+                              <button class="btn btn-outline-danger btn-sm" type="submit">Delete</button>
+                            </form>
+                          </div>
+                        </td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info mb-0">No programs added for this subject yet.</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-info mb-0">No lab subjects yet. Add your first subject from the form.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

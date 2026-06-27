@@ -1,0 +1,111 @@
+{% extends 'layout.html' %}
+
+{% block title %}Program {{ program.program_number }} - {{ subject.name }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm rounded-4">
+      <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+          <div>
+            <div class="text-primary fw-semibold">{{ subject.code }}</div>
+            <h1 class="h3 mb-1">Program {{ program.program_number }}</h1>
+            <p class="text-muted mb-0">{{ subject.name }}</p>
+          </div>
+          <div class="d-flex gap-2">
+            {% if session.get('user_email') %}
+            <form method="post" action="{{ url_for('bookmark_program', program_id=program.id) }}">
+              <button class="btn btn-outline-primary btn-sm">{{ '★ Bookmarked' if progress and progress.is_bookmarked else '☆ Bookmark' }}</button>
+            </form>
+            <form method="post" action="{{ url_for('complete_program', program_id=program.id) }}">
+              <button class="btn btn-outline-success btn-sm">{{ '✓ Completed' if progress and progress.is_completed else '○ Mark Complete' }}</button>
+            </form>
+            {% else %}
+            <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-sm">Login to Save Progress</a>
+            {% endif %}
+          </div>
+        </div>
+
+        <section class="mb-4">
+          <h2 class="h5">Question</h2>
+          <div class="rounded-4 p-3 border" style="background: #faf7ff;">{{ program.question }}</div>
+        </section>
+
+        <section class="mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h2 class="h5 mb-0">Program Code</h2>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-secondary" onclick="navigator.clipboard.writeText(document.getElementById('code-block').textContent)">Copy Code</button>
+              <a class="btn btn-sm btn-outline-primary" href="data:text/plain;charset=utf-8,{{ program.code | urlencode }}" download="program_{{ program.program_number }}.py">Download .py</a>
+            </div>
+          </div>
+          <pre id="code-block" class="rounded-4 p-3 border" style="background: #0f172a; color: #e2e8f0; overflow-x:auto;"><code>{{ program.code }}</code></pre>
+        </section>
+
+        <section class="mb-4">
+          <h2 class="h5">Output</h2>
+          {% if outputs %}
+          <div class="d-grid gap-3">
+            {% for output in outputs %}
+            <div class="border rounded-4 p-3">
+              {% if output.output_type == 'console' %}
+              <div class="fw-semibold mb-2">Console Output</div>
+              <pre class="mb-0" style="white-space: pre-wrap;">{{ output.content or 'No console output available yet.' }}</pre>
+              {% else %}
+              <div class="fw-semibold mb-2">{{ output.output_type|replace('_', ' ')|title }}</div>
+              {% if output.image_url %}
+              <img src="{{ output.image_url }}" class="img-fluid rounded-3" alt="Output preview">
+              {% elif output.content %}
+              <pre class="mb-0" style="white-space: pre-wrap;">{{ output.content }}</pre>
+              {% else %}
+              <div class="text-muted">No output media added yet.</div>
+              {% endif %}
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="alert alert-info rounded-4">No output media has been added yet. Admin can upload screenshots or console output.</div>
+          {% endif %}
+        </section>
+
+        <section class="mb-4">
+          <h2 class="h5">Viva Questions</h2>
+          {% if viva_questions %}
+          <ol class="list-group list-group-numbered">
+            {% for viva in viva_questions %}
+            <li class="list-group-item">{{ viva.question }}</li>
+            {% endfor %}
+          </ol>
+          {% else %}
+          <div class="alert alert-secondary rounded-4">No viva questions have been published yet.</div>
+          {% endif %}
+        </section>
+
+        {% if session.get('user_email') %}
+        <section class="border-top pt-4">
+          <h2 class="h5">Report an issue</h2>
+          <form method="post" action="{{ url_for('report_program', program_id=program.id) }}" class="d-grid gap-2">
+            <textarea name="message" class="form-control" rows="3" placeholder="Describe a bug, wrong output, or incorrect code"></textarea>
+            <button class="btn btn-outline-danger btn-sm">Submit Report</button>
+          </form>
+        </section>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm rounded-4">
+      <div class="card-body">
+        <h2 class="h5">Quick Actions</h2>
+        <div class="d-grid gap-2">
+          <a href="{{ url_for('lab_subject', subject_id=subject.id) }}" class="btn btn-outline-secondary">Back to Subject</a>
+          <a href="{{ url_for('labs') }}" class="btn btn-outline-primary">Explore Other Labs</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
